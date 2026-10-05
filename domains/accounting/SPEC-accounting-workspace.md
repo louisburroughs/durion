@@ -1,10 +1,10 @@
 ---
 type: Specification
 title: Accounting Workspace
-description: The single-pane accounting home for novice accounting users — cash position, bills to pay with intake and approval limits, customer payment matching, a plain-language ledger view and approval/drawer-cash settings — with the domain rulings, backend changes and phased delivery it needs.
+description: The single-pane accounting home for novice accounting users — cash position, bills to pay with intake and approval limits, customer payment matching, a plain-language ledger view and approval/drawer-cash settings — with the domain rulings (including who owns supplier-invoice intake), backend changes and phased delivery it needs.
 status: proposed
 domain: accounting
-tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, bank-deposit, register-float, petty-cash, approvals, adr-0039, adr-0041, adr-0044, adr-0047, adr-0062, adr-0067]
+tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, bank-deposit, register-float, petty-cash, approvals, bill-intake, adr-0039, adr-0041, adr-0044, adr-0047, adr-0049, adr-0062, adr-0067]
 ---
 
 ## SPEC — Accounting Workspace
@@ -19,12 +19,15 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > The specification turns the reviewed design into implementable rules, screens, contracts and phases; stories are cut from §11.
 >
 > Authority: financial meaning and posting semantics were ruled by the Accounting Domain Agent (`.claude/agents/domains/accounting-domain.md`) on 2026-10-05, in
-> five consultations, three of them on questions the platform owner delegated to it; business choices were made by the platform owner on 2026-10-05. Every
-> decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
-> Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0029–0035,
-> 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044 (event-only domain walls), ADR-0047 (ledger
-> inalterability), ADR-0048 (inventory valuation), ADR-0057 (reporting measures), ADR-0062 (multitenancy), ADR-0064 (business references, never UUIDs, as
-> display text), ADR-0067 (currency / Canada readiness).
+> five consultations, three of them on questions the platform owner delegated to it; business choices were made by the platform owner on 2026-10-05. Ownership
+> of supplier-invoice intake (OI-1) was ruled jointly by the Accounting, Positivity (Integrations) and Invoicing & Payments Domain Agents on 2026-10-05, in two
+> rounds, at the platform owner's request (AW22–AW29). Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code
+> on 2026-10-05; **PROPOSED** means this specification.
+> Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
+> (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
+> (event-only domain walls), ADR-0047 (ledger inalterability), ADR-0048 (inventory valuation), ADR-0049 (supplier integration boundary), ADR-0050 (vendor
+> profiles), ADR-0051 (supplier protocol adapters), ADR-0057 (reporting measures), ADR-0062 (multitenancy), ADR-0064 (business references, never UUIDs, as display
+> text), ADR-0067 (currency / Canada readiness).
 >
 > Related specifications: [SPEC-manual-bank-reconciliation.md](SPEC-manual-bank-reconciliation.md) (the monthly bank check-up this workspace links to; its
 > preparer ≠ approver rule and outstanding items are reused unchanged), [SPEC-inventory-adjustment-gl-posting.md](SPEC-inventory-adjustment-gl-posting.md) (form).
@@ -66,6 +69,7 @@ Frontend paths are relative to `durion-positivity-frontend/`, backend paths to `
 | Vendor bills | Statuses `PENDING_RECEIPT_MATCH`, `MATCH_EXCEPTION`, `CURRENCY_HOLD`, `APPROVED`, `REJECTED`, `PAID`, `VOIDED`; `REJECTED` and `PAID` have no write path (a paid bill stays `APPROVED`). HIGH matches are set `APPROVED`; **every** matched bill — including one left in `MATCH_EXCEPTION` — then receives `approvedBy`, `approvedAt` and "Auto-approved: three-way match successful" (defect G12). `resolveMatchException` and `selectMatchCandidate` take `operatorId` from the request body | `ACC/enums/VendorBillStatus.java` l.26-68; `ACC/service/VendorBillServiceImpl.java` l.288-305, l.318-368, l.692-727; `ACC/controller/VendorBillController.java` l.286-287, l.588 |
 | Match score | Inline in `VendorBillServiceImpl`: amount within 10% +40; line-item Jaccard similarity ×30; date ≤ 7 days +20 (≤ 30 days +10); PO present +5 (the comment and Javadoc say 10); minimum 50; HIGH ≥ 70 (Javadoc says "> 70"); several candidates ≥ 50 → AMBIGUOUS | `ACC/service/VendorBillServiceImpl.java` l.476-595 |
 | Supplier invoices | Only intake: pos-supplier EDI fetch `POST /v1/supplier/invoices/{supplierRef}/fetches` (`supplier:invoice:fetch`) → `SupplierInvoiceReceivedV1` → vendor bill (`CURRENCY_HOLD` for foreign currency, `MATCH_EXCEPTION` for a null gross, else `PENDING_RECEIPT_MATCH`); **no due date**; only `totalGrossAmount` is stored although the event carries `totalNetAmount` and `totalTaxAmount`. Inventory goods receipts do not create bills | `pos-supplier/…/controller/SupplierInvoiceFetchController.java` l.40-52; `ACC/service/SupplierInvoiceEventsListener.java` l.201-262, l.360; `EVT/supplier/SupplierInvoiceReceivedV1.java` l.50-59 |
+| Bill duplicates and vendor identity | The EDI listener looks for an existing bill by (`vendorId`, `billNumber`) only — no invoice date — and sets `vendorId` = the pos-supplier `vendorProfileId`. Goods-receipt bills set `vendorId` from the inventory vendor id and a **generated** bill number, not the vendor's. `vendor_bill` has no business-key unique constraint (only `vendor_bill_pkey` and `vendor_bill_tenant_key`) | `ACC/repository/VendorBillRepository.java` l.186; `ACC/service/SupplierInvoiceEventsListener.java` l.205-208; `ACC/service/VendorBillServiceImpl.java` l.120-122; `pos-accounting/src/main/resources/db/migration/V1__baseline_accounting.sql` l.1541-1544 |
 | Receivables | `ReceivablePaymentStatus` `AVAILABLE` / `FULLY_APPLIED`; applications via `POST /v1/accounting/payments/{paymentId}/applications` (`accounting:payment:apply`), reversal `POST /v1/accounting/payment-applications/{id}/reverse`; overpayment → `CustomerCredit` (`/v1/accounting/customer-credits`); settled payments are **not** applied to their invoice automatically | `ACC/entity/ReceivablePayment.java` l.94-95, l.193-215; `ACC/controller/PaymentApplicationController.java` l.65-365; `ACC/controller/CustomerCreditController.java` l.60-191; `.business-rules/AGENT_GUIDE.md` Decision Index l.27-40 (AD-001…AD-004, AD-010) |
 | Anonymous sales | Carts start without a customer; a customer is required only for workorder links and on-account tender; pos-invoice drafts carry `partyId` null "for anonymous counter sales"; `PaymentSettledV1.partyId` is `@Nullable` and `SettlementEventsListener` skips such payments ("Known gap", issue #1537 D4); aged receivables excludes null-party invoices while the GL keeps them in 1200. Order spec R11.2 (DRAFT): "Anonymous walk-in cash sales stay customer-optional." | `ORD/service/SalesOrderServiceImpl.java` l.318, l.340-344, l.604-612, l.797-798; `pos-invoice/…/service/OrderInvoiceServiceImpl.java` l.130-133; `EVT/payment/PaymentSettledV1.java` l.39; `ACC/service/SettlementEventsListener.java` l.54-62, l.268-281, l.590-591; `ACC/service/FinancialReportingServiceImpl.java` l.1421-1428; `domains/order/spec-pos-order-missing-functionality.md` l.316-317 |
 | Chart of accounts | Seeded: 1000 Cash (`BANK_CASH`), 1090 Undeposited Funds, 1095 Register Cash Clearing, 1200 AR, 1300 Inventory, 2000 AP, 2200 Sales Tax Payable, 2300 Customer Credit Liability, 2350 Settlement Suspense, 2360 Bank Reconciliation Adjustments, 4000 Service Revenue, 4900 Settlement Adjustments, 4920 Interest Income, 4930 Cash Over, 5000 COGS, 5100 Inventory Shrinkage, 6000 Payment Processor Fees, 6020 NSF Fees, 6030 Bank Service Charges, 6115 Cash Short. **No 1080, 1250, 1260, no 3xxx equity, no 61xx other than 6115.** Receipts post Dr 1090 / Cr 1200; settlements Dr 1000 (net) / Dr 6000 / Cr 1090 / Cr 2350 | `pos-accounting/src/main/resources/db/migration/R__seed_reference_accounting.sql` l.14-86, l.227-320, l.466-523 |
@@ -94,6 +98,9 @@ Frontend paths are relative to `durion-positivity-frontend/`, backend paths to `
 | G11 | Vendor bills store the gross only; the vendor's stated tax is dropped | Canadian input-tax credits can't be claimed | AW20 |
 | G12 | A medium-confidence bill left in `MATCH_EXCEPTION` is stamped `approvedBy` / `approvedAt` / "Auto-approved" (`VendorBillServiceImpl` l.300-305) | The audit trail shows approvals that never happened | §4.3 (approval fields are written only by an approval) |
 | G13 | `CONTROLLER` lacks `accounting:payment:apply`; `accounting:payment:assign-customer` (AD-004) exists nowhere; `accounting:period:override` is enforced outside `AccountingPermissions`; the catalogued `accounting:ap:approve` / `accounting:ap:reject` are unused | The accounting role can't use Customer payments; customer assignment isn't governed; bill approval isn't enforced | §7.3 |
+| G14 | The duplicate check on a vendor bill ignores the invoice date and nothing in the database enforces it | A PDF and its EDI copy, or a bill keyed twice, can become two bills and be paid twice; a vendor reusing a number in a later year collides with the old bill | AW22, §7.4 (one duplicate rule, partial unique index) |
+| G15 | Vendor identity is split: EDI bills use the pos-supplier connection profile id, goods-receipt bills the inventory vendor id | One vendor appears as two; cross-channel duplicates and aged payables by vendor are wrong | AW23 (payee and profile link) |
+| G16 | Goods-receipt bills carry a generated bill number, not the vendor's | The vendor's invoice for the same delivery can't be recognised by number | §7.4 (duplicate by delivery reference) |
 
 ---
 
@@ -217,7 +224,8 @@ GENERAL_MANAGER do (AW7).
 
 **Separation of duties** (each exception is a tenant switch, default off, audited on every use — the bank-reconciliation D3 pattern):
 
-1. The creator of a bill may not approve it (`POST /vendor-bills`, upload, email-in or import makes the person the creator; EDI bills are created by the system).
+1. The creator of a bill may not approve it (`POST /vendor-bills` makes the caller the creator; for an upload, email-in document or import, the person who
+   confirms the read-back is the creator, §4.9; EDI bills are created by the system, OI-11).
 2. The approver of a bill may not pay it: 403 `AP_PAYMENT_SELF_APPROVED_BILL` naming the bills; oldest-due-first allocation must not silently skip them.
 3. Match-exception actions: `ACCEPT` **is** approval (same permission, same limit, justification); `CORRECT` is not approval; `VOID` needs
    `accounting:ap:reject` and a reason.
@@ -362,8 +370,8 @@ Applies only to CAD tenants whose GST/HST registration is recorded; the backend 
 | Priority | Formats and channels |
 | --- | --- |
 | v1 | PDF; photos JPG / PNG / HEIC; scanned TIFF — up to 25 MB per file, one invoice per file with an offer to split a multi-invoice PDF; per-tenant email-in address (about 20 attachments per email); CSV / XLSX import with column mapping and a downloadable template; monthly vendor statement upload (PDF/CSV) for statement reconciliation including credits (cores depend on OI-9) |
-| v2 | ANSI X12 810 (+855/856 for receipt matching) through an EDI provider for large tire distributors; distributor APIs through partners |
-| Later | Purchase-order matching (OI-7); CFDI 4.0 XML for es-MX tenants (Mexico is not scheduled, ADR-0067 OP-9); UBL 2.1 / Peppol BIS 3.0 (DBNAlliance), embedded Factur-X/ZUGFeRD XML; DOC/DOCX/TXT are not bill sources |
+| v2 | ANSI X12 810 through an EDI provider for large tire distributors, collected by pull (AW28); distributor APIs through partners. 855 and 856 do not travel in `SupplierInvoiceReceivedV1`: 856 needs its own fact consumed by pos-inventory, 855 maps to `supplier.order.confirmed` only when a transmission intent exists — both need an ADR-0049 amendment at v2 |
+| Later | Purchase-order matching (OI-7); inbound CFDI 4.0 XML for es-MX tenants, an intake format like any other (AW29; Mexico is not scheduled, ADR-0067 OP-9); UBL 2.1 / Peppol BIS 3.0 (DBNAlliance), embedded Factur-X/ZUGFeRD XML; DOC/DOCX/TXT are not bill sources |
 
 Minimal CSV columns — required: `supplier_name`, `invoice_number`, `invoice_date`, `due_date` (or `terms`), `line_description`, `line_amount`; recommended:
 `document_type` (invoice / credit memo), `po_number` or `supplier_order_number`, `part_number`, `quantity`, `unit_cost`, `core_charge`, `fees` (FET, tire and
@@ -372,6 +380,58 @@ line row.
 
 Whatever the channel, nothing is owed until a person checks the read-back and the bill is approved (§4.3). Read-back fields carry a confidence state; a field the
 reader is unsure of is marked "Check this" and blocks confirmation until a person accepts or corrects it.
+
+### 4.9 Bill intake: ownership, drafts, payees and statements (AW22–AW29)
+
+**Who owns what (AW22).** A supplier invoice reaches the shop in two ways, and each has one owner:
+
+| Concern | Owner | Rule |
+| --- | --- | --- |
+| Upload, photo, CSV / XLSX import, vendor-statement upload, email-in documents | `pos-accounting` | Entered by authenticated command; the person who confirms the read-back is the bill's creator (AW6.1). Never routed through `SupplierInvoiceReceivedV1` |
+| The unconfirmed draft | `pos-accounting` | Its own aggregate `BillIntakeItem`, never a `VendorBillStatus`; never counted in aged payables, the cash outlook or any amount owed |
+| Read-back, confirm, duplicate check across every channel, bill creation, matching, approval | `pos-accounting` | One internal entry point, `BillIntakePort`, is the only path that creates a vendor bill (ArchUnit-guarded) |
+| Credentialed machine-to-machine vendor channels: EDI, distributor APIs, a CFDI pulled from a supplier API or portal | `pos-supplier` (ADR-0049) | Publishes `SupplierInvoiceReceivedV1` for these only; never stores or republishes a document a person uploaded, imported or emailed (ADR-0044 R6) |
+| Reading untrusted files (OCR, PDF, images, spreadsheets, inbound CFDI XML) | New **extraction worker** (utility) | Stateless and isolated; no business logic; holds the extraction-provider credentials; returns fields with confidence and proposed splits; invoked under ADR-0044 R2 as an asynchronous job while the draft sits in `EXTRACTING` |
+| Email transport | New **inbound-mail edge** (non-domain) | MX, SPF/DKIM/DMARC, rate limits, `Message-ID` idempotency and address provisioning; the tenant comes only from the receiving address; hands file references to pos-accounting and never creates a bill; never a vendor-profile binding; never replies to senders (no pos-platform-sender) |
+| Outbound CFDI (shop → customer) | `pos-invoice` | PAC stamping, cancellation and the folio fiscal are part of invoice issuance; pos-tax computes tax; pos-documents renders the PDF |
+| — | `pos-invoice`, `pos-documents` | Own no part of bill intake; pos-documents hosts no parsing or storage of inbound files (ADR-0020 covers outbound rendering) |
+
+Supplier connectivity therefore means credentialed machine-to-machine exchanges with a vendor or its EDI / API provider; supplier documents that arrive any
+other way are accounts-payable intake. A new ADR records this boundary (§13).
+
+**The draft (`BillIntakeItem`).** `QUARANTINED` → `EXTRACTING` → `READY_FOR_REVIEW` → `CONFIRMED` (the vendor bill exists) | `DISCARDED` (reason ≥ 10
+characters). A file that fails validation or scanning ends `FILE_REJECTED` with a plain reason; malware stays quarantined. A multi-invoice file yields one draft
+per proposed split. Nothing in this lifecycle posts, is owed or appears in aging.
+
+**When extraction fails (AW26).** If the provider is down or can't read the file, the draft still moves to `READY_FOR_REVIEW` with every field empty and marked
+"Check this", beside the file preview. A person types the bill in; the same confirm, duplicate and approval rules apply. Retry is offered; the bill records
+`extractionOutcome = MANUAL`. Nothing is ever created automatically.
+
+**One duplicate rule for every channel (G14, G16).** A bill is a duplicate when (tenant, payee, normalised bill number, bill date) matches a bill that is not
+`VOIDED` or `REJECTED`, so a legitimate re-issue after a void still goes through. A partial unique index enforces it. A goods-receipt bill carries a generated
+number, so an incoming invoice is also checked against it by delivery reference. A duplicate is refused with a link to the original.
+
+**Payees (AW23).** pos-accounting owns the **payee**: the accounts-payable side of a vendor (remit-to, terms, vendor tax registration numbers, AP status). It
+is the only vendor key on a vendor bill and on an AP payment.
+
+- pos-supplier owns connection profiles. Each profile links to exactly one payee; a payee may have several profiles. pos-accounting owns the link, keyed on
+  `vendorProfileId`, and audits it; pos-supplier never stores payee ids. The link replaces today's `vendorId = vendorProfileId`.
+- Inventory's vendor id maps through the same link, never by assuming equal ids (G15).
+- An invoice from an unlinked profile is recorded against a new payee a person can re-point; it is never refused, so the directory never stops a vendor being paid.
+- A change to a payee's remit-to or bank details needs a second person and is audited (payment-fraud control).
+- Payee ids and customer `partyId`s are separate namespaces: a payee is never a pos-customer or pos-invoice party, and no screen or API accepts one in place of
+  the other.
+- pos-accounting publishes payee facts (ADR-0044 R6). A platform-wide legal-party master is deferred to the new ADR; if one is chosen, the payee references it and
+  keeps only AP attributes.
+
+**Vendor statements and credits (AW27).** The AP clerk reconciles a vendor's statement against open bills (`accounting:vendor_statement:reconcile`: clerk,
+CONTROLLER, ADMIN). A statement reconciliation **posts nothing**, so it needs no second person. Each difference is resolved by taking in the missing bill through
+intake (normal approval), asking the vendor for a credit note, or recording a vendor error. A statement credit never adjusts an approved bill (approved bills are
+locked): the credit arrives as its own vendor credit note — a negative bill — through intake and approval, and is then allocated against open bills (new
+capability, OI-13). Core charges follow OI-9.
+
+**Partial payments (EXISTING).** An `APPROVED` bill may be paid in parts; open amount = total − allocations, never exceeded. The bill stays `APPROVED`; "Partly
+paid" is a derived label, not a status. Approver ≠ payer (AW6.2) applies to every allocation.
 
 ---
 
@@ -449,22 +509,26 @@ inside the dialog without losing input (`.dialog-error`).
 
 ### 5.2 Bills to pay — `/app/accounting/bills` (supersedes `payables/vendor-invoices` list routes; `bills/:billId` deep link)
 
-1. Header actions: Approval limits (approvers), Fetch from suppliers, **Upload vendor invoice** (primary; opens the file picker).
+1. Header actions: Approval limits (approvers), Fetch from suppliers, **Upload vendor invoice** (primary; opens the file picker; shown with
+   `accounting:bill_intake:create`).
 2. **Add bills** card with "Which way should I use?" explainer: drop zone (`<label for>` + visually hidden `<input type="file" multiple>` that stays in the tab
-   order; formats and size from §4.8); forward-by-email address with copy button; links to spreadsheet import, the template and vendor-statement check; supplier
-   connections with status, last fetch and **Fetch now** (`supplier:invoice:fetch`).
+   order; formats and size from §4.8); forward-by-email address with copy button (Email-in settings — new address, allowed senders per payee — with
+   `accounting:bill_intake:manage`); links to spreadsheet import, the template and vendor-statement check; supplier connections with status, last fetch and
+   **Fetch now** (`supplier:invoice:fetch`). Uploads and email-in documents are drafts (§4.9) until confirmed: the Check step shows them, and no amount owed
+   includes them.
 3. **How a bill moves** — four steps with live counts: Check (needs your review) · Approve (sent for approval) · Pay (approved to pay) · Done (paid this month).
 4. **Needs your review** — list of bills (vendor, amount, source icon and channel, badge) and the **review panel**:
    - Header: channel and uploader, vendor, invoice number, date, total, badge.
    - Document preview with the location of each read value highlighted, open full size.
    - **What we read** form (vendor with "matches a vendor you buy from" / "new vendor — add", invoice number, PO, invoice date, due date with "worked out from
      Net 30 — check it", tax on the invoice, total). Low-confidence fields carry "Check this".
-   - Checks list: not a duplicate (vendor + invoice number + date); matches delivery `REC-…`; prices within tolerance of the delivery; within / over the clerk limit.
-     (A "vendor payment details unchanged" check is PROPOSED only once vendor bank details exist as data.)
+   - Checks list: not a duplicate (payee + invoice number + date, or the same delivery, §4.9); matches delivery `REC-…`; prices within tolerance of the delivery;
+     within / over the clerk limit; payee payment details unchanged since the last bill (once payee remit-to and bank details exist, AW23).
    - Lines table: Item (+ SKU) · Ordered · Received · Billed · Price each · Amount; subtotal; tax as shown on the invoice; total.
    - Match score chip with breakdown and "What's a match score?".
    - Approval routing note and "Why can't I approve my own bill?" (AW6.1).
-   - Consequence sentence; actions **Send for approval** (creator) / **Approve bill** (eligible approver) · Save for later · Discard upload / Reject bill.
+   - Consequence sentence; actions **Send for approval** (creator) / **Approve bill** (eligible approver) · Save for later · Discard upload (draft, reason
+     required) / Reject bill. When extraction failed, the form opens empty with every field marked "Check this" and a Try reading again action (AW26).
    - No-delivery bills (shop supplies): "What was this for?" and a required note when sent for approval without a match.
 
 ### 5.3 Customer payments — `/app/accounting/payments` (replaces `payments/apply`)
@@ -606,32 +670,80 @@ configuration; variance tolerance from the policy; `clerkId` from the security c
 - `pos-accounting` permission registry: register `accounting:payment:assign-customer` (AD-004); move `accounting:period:override` into `AccountingPermissions` and
   its registration; register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject` (G13).
 - `pos-tax` (CAD): Canadian rates and registrations; plausibility lookup.
-- `pos-supplier` (CAD): split the EDI tax total by tax type.
+- `pos-supplier`: additive fields on `SupplierInvoiceReceivedV1` — `channel` (ADR-0051 protocol-family values), `exchangeId` (provenance only: pos-accounting
+  never calls pos-supplier to resolve it, ADR-0044 R1), due date or terms, and tax by type (CAD: split the EDI tax total). All nullable; a missing value
+  means today's behaviour (ADR-0044 §3). The exchange audit keeps its own 400-day policy (ADR-0050) outside the bill file store. pos-supplier never stores
+  payee ids, and never stores or republishes uploaded documents (AW22, AW23).
 
-### 7.4 Bill intake (owner of the module open, §12 OI-1)
+### 7.4 Bill intake (AW22–AW29)
 
-Upload (multipart), email-in (per-tenant address), spreadsheet import with mapping, vendor-statement upload, extraction with per-field confidence, duplicate
-detection on (vendor, invoice number, invoice date), multi-invoice split, retention of the source file, creator recorded for AW6.1. ADR-0049 places vendor wire
-formats in one integration module; whether uploads and extraction live there or in `pos-accounting` needs a ruling (and possibly an ADR) before stories.
+Owners and rules are in §4.9. Contracts below are PROPOSED; paths and permissions avoid the word "invoice", which belongs to pos-invoice (`invoice:*`) and to
+pos-supplier's machine channels (`supplier:invoice:fetch`).
 
-**Security controls (normative, whichever module owns intake).** Every uploaded file and email attachment is untrusted input.
+| Capability | Contract (method · path · permission) | Notes |
+| --- | --- | --- |
+| Upload files | `POST /v1/accounting/bill-intake/uploads` (multipart) · `accounting:bill_intake:create` | One `BillIntakeItem` per file in `QUARANTINED`; `requestId` |
+| Spreadsheet import | `POST /v1/accounting/bill-intake/imports` (file + column mapping) · `accounting:bill_intake:create` | §4.8 columns; one draft per invoice; errors per row |
+| List and read drafts | `GET /v1/accounting/bill-intake?status=` · `GET …/{intakeId}` · `accounting:ap:view` | Fields carry confidence and "Check this" |
+| Edit the read-back | `PUT /v1/accounting/bill-intake/{intakeId}` · `accounting:bill_intake:create` | Only in `READY_FOR_REVIEW` |
+| Confirm | `POST /v1/accounting/bill-intake/{intakeId}/confirmation` · `accounting:bill_intake:create` | Through `BillIntakePort`; the caller becomes the creator; 409 `AP_BILL_DUPLICATE` with the original's reference; 422 `BILL_INTAKE_FIELDS_UNCHECKED` |
+| Discard | `POST /v1/accounting/bill-intake/{intakeId}/discard` · `accounting:bill_intake:create` | Reason ≥ 10 characters |
+| Retry extraction | `POST /v1/accounting/bill-intake/{intakeId}/extraction-retry` · `accounting:bill_intake:create` | §4.9 (AW26) |
+| Email-in received | command from the inbound-mail edge | File references + tenant from the receiving address; drafts as for an upload |
+| Source file | `GET /v1/accounting/bill-source-files/{fileId}/preview` and `…/content` · `accounting:ap:view`; `DELETE …/{fileId}` · `accounting:bill_source_file:delete` | Controls 5, 6 and 8 below |
+| Vendor statements | `POST /v1/accounting/vendor-statements` · `accounting:bill_intake:create`; `POST …/{statementId}/reconciliation` · `accounting:vendor_statement:reconcile` | Posts nothing (AW27) |
+| Intake settings | `GET/PUT /v1/accounting/bill-intake/settings` · `accounting:bill_intake:manage` | Email-in address request and rotation, allowed senders per payee, mapping templates, retention period |
+| Payees and profile links | read and maintain payees; link a connection profile to a payee | Permission and the second-person flow for remit-to and bank changes: OI-14 |
+| EDI adapter | the `SupplierInvoiceReceivedV1` listener becomes an adapter into `BillIntakePort` | Records the event durably in the consumer transaction, whether it becomes a draft or a bill (a lost event is a lost debt); OI-11 |
+| Data fixes (before intake ships) | partial unique index on (`tenant_id`, `payee_id`, normalised bill number, `bill_date`) excluding `VOIDED` / `REJECTED`; payee link populated for existing EDI and goods-receipt bills; delivery-reference duplicate check | G14–G16 |
+| Permissions | new `accounting:bill_intake:create`, `accounting:bill_intake:manage`, `accounting:vendor_statement:reconcile`, `accounting:bill_source_file:delete` | Registry + security catalog; no new `supplier:invoice:*` key covers documents people upload or type in |
+| Events | `ACCOUNTING_BILL_INTAKE_CONFIRM`, `ACCOUNTING_BILL_INTAKE_DISCARD`, `ACCOUNTING_BILL_SOURCE_FILE_DELETE`, `ACCOUNTING_VENDOR_STATEMENT_RECONCILE`; payee facts on Kafka | Event-type registry thresholds `write` |
+
+**Permissions (AW25).**
+
+| Permission | Allows | Holders (PROPOSED; Security sign-off, OI-5) |
+| --- | --- | --- |
+| `accounting:bill_intake:create` | Upload, import, statement upload, edit a draft, confirm, discard with a reason, retry | Clerk, CONTROLLER, ADMIN |
+| `accounting:bill_intake:manage` | Email-in address and rotation, allowed senders, mapping templates, retention settings | CONTROLLER, ADMIN |
+| `accounting:vendor_statement:reconcile` | Reconcile a vendor statement (posts nothing) | Clerk, CONTROLLER, ADMIN |
+| `accounting:bill_source_file:delete` | Delete a source file — only for a `DISCARDED` draft or after retention expiry; never while the bill is within its statutory retention period or on legal hold; justification ≥ 10 characters; audited | ADMIN |
+| `accounting:ap:view` (EXISTING) | Preview and download source files | As today; it never grants `supplier:audit:read`, which opening the raw EDI payload behind `exchangeId` requires |
+| `supplier:invoice:fetch`, `supplier:profile:write`, `supplier:audit:read` (EXISTING) | Machine channels, profiles and their audit | Unchanged |
+
+Approval keys are unchanged (§4.3).
+
+**File storage (AW24).** In v1 the source-file bytes stay in pos-accounting (the bank-statement file pattern, SPEC-manual-bank-reconciliation D13) behind an
+internal `FileStore` port:
+
+- The port is vault-shaped: opaque file id, tenant, sha256, content type, retention-until, legal-hold flag, purge. It must allow object storage behind it;
+  25 MB files don't belong in Postgres.
+- v1 already carries the retention purge and legal hold (the `BankImportRetentionJob` pattern).
+- Files are stored only after validation and scanning pass; until then they sit in quarantine. They are served only through pos-accounting's authorized
+  endpoint.
+- The second module that needs to keep source files (expected: outbound CFDI XML in pos-invoice, or billing approval artifacts) does not copy this pattern. Its
+  arrival triggers a platform file-vault utility, and pos-accounting's bank-statement and bill files move into it.
+
+**Security controls (normative).** Every uploaded file and email attachment is untrusted input.
 
 1. **Quarantine first.** Files land in tenant-scoped quarantine storage and are not parsed, previewed or downloadable until validation and scanning pass.
 2. **Content validation.** Allow-list of types by magic bytes, not by extension or declared MIME type (PDF, JPEG, PNG, HEIC, TIFF, CSV, XLSX); size ≤ 25 MB per file
    and ≤ 20 attachments per email; PDFs ≤ 30 pages; reject encrypted or password-protected PDFs and PDFs with JavaScript, launch actions or embedded files;
    XLSX without macros (refuse `.xlsm` and VBA parts); CSV treated as data only, and any cell beginning `=`, `+`, `-` or `@` neutralised on every re-export.
 3. **Malware scanning** before any parser runs; a positive or failed scan rejects the file with a plain message and keeps no parsed output.
-4. **Parser isolation.** Extraction runs in an isolated worker with CPU, memory, time and decompression-ratio limits; a limit breach rejects the file.
+4. **Parser isolation.** Extraction runs in the extraction worker (§4.9), as an asynchronous job, with CPU, memory, time and decompression-ratio limits; a limit
+   breach rejects the file.
 5. **Preview.** The browser shows a server-rendered image of each page or a sandboxed viewer with scripting disabled; extracted text is rendered as text, never as
    HTML (ADR-0065).
 6. **Tenant isolation and authorization.** Storage keys and metadata rows carry `tenant_id` under row-level security (ADR-0062); a file is served only through
-   an authorized endpoint (`accounting:ap:view`) that checks tenant and permission on every request, never through a public or long-lived URL; a 403 or 404
-   never reveals whether the file exists.
-7. **Email-in.** One unguessable address per tenant, rotatable; mail must pass SPF/DKIM/DMARC alignment; optional sender allow-list per vendor; rate limits per
-   address; a rejected email is reported to the shop, not to the sender.
+   pos-accounting's authorized endpoint (`accounting:ap:view`) that checks tenant and permission on every request, never through a public or long-lived URL;
+   a 403 or 404 never reveals whether the file exists.
+7. **Email-in.** One unguessable address per tenant, rotatable; mail must pass SPF/DKIM/DMARC alignment; optional sender allow-list per payee; rate limits per
+   address; a rejected email is reported to the shop, never to the sender. The inbound-mail edge owns transport and address provisioning; pos-accounting owns
+   the tenant-facing settings (`accounting:bill_intake:manage`). An allow-list entry needs an existing payee and is audited with a justification; allow-lists
+   never come from vendor profiles.
 8. **Retention and deletion.** Source files are kept with the bill for a configurable period (default 7 years, matching bank-statement files, SPEC-manual-
-   bank-reconciliation D13); deletion is an audited administrator action and is blocked while the bill is open or under legal hold; rejected and discarded
-   uploads are purged after 30 days.
+   bank-reconciliation D13): a paid bill's source document is tax evidence. Deletion needs `accounting:bill_source_file:delete` and is allowed only for a
+   discarded draft or after retention expiry, never on legal hold; rejected and discarded uploads are purged after 30 days.
 9. **Audit.** Upload, scan result, extraction, every view and download, and deletion are audited with actor, tenant and file hash.
 10. **No auto-trust.** Extracted values are suggestions; nothing posts or becomes owed until a person confirms the read-back and the bill is approved (§4.3,
     §4.8).
@@ -650,6 +762,9 @@ formats in one integration module; whether uploads and extraction live there or 
 | `books` | `BooksPageComponent` | any of `reporting:view:financial-statements`, `accounting:coa:view`, `accounting:je:view`; each tab is shown only with its own permission (Summary and Who owes what: `reporting:view:financial-statements`; All entries: `accounting:je:view`; account drill-down lists: `accounting:coa:view` or `reporting:view:financial-statements`) |
 | `books/entries/:journalEntryId` | `JournalEntryDetailPageComponent` | `accounting:je:view` only (its own gate; the any-of gate above never reaches it) |
 | `settings/approval-limits` | `ApprovalLimitsPageComponent` | `accounting:ap_approval_policy:manage` or `order:session_policy:manage` or `accounting:mapping-key:edit` |
+
+Inside Bills to pay, the Add bills controls need `accounting:bill_intake:create`, Email-in settings need `accounting:bill_intake:manage`, the vendor-statement
+check needs `accounting:vendor_statement:reconcile`, and Fetch now needs `supplier:invoice:fetch`; each is hidden without its permission.
 
 Old routes `payments/apply` and `payables/vendor-invoices*` redirect to the new ones (pre-production: no shims beyond redirects). Constants are added to
 `route-permissions.ts`; the nav-registry spec keeps routes and nav in agreement.
@@ -693,7 +808,18 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 - `ACCEPT` over the limit returns `AP_APPROVAL_LIMIT_EXCEEDED` for a clerk; automatic approval never exceeds the automatic limit (default 0 → every bill to a
   person).
 - Paying a bill one approved returns `AP_PAYMENT_SELF_APPROVED_BILL`.
-- Read-back fields marked "Check this" block confirmation until accepted or corrected; a duplicate (vendor, number, date) is refused with a link to the original.
+- Read-back fields marked "Check this" block confirmation until accepted or corrected (422 `BILL_INTAKE_FIELDS_UNCHECKED`).
+- A second bill with the same payee, normalised number and date is refused with `AP_BILL_DUPLICATE` and a link to the original, whichever channel brought
+  either copy (upload + EDI, import + upload); after the original is voided the re-issue is accepted.
+- An uploaded invoice for a delivery that already has a goods-receipt bill is flagged as a duplicate by delivery reference.
+- An unconfirmed draft never appears in aged payables, the cash outlook or any amount owed.
+- With the extraction provider unavailable, an upload reaches `READY_FOR_REVIEW` with every field empty and marked "Check this"; the confirmed bill records
+  `extractionOutcome = MANUAL`.
+- The person who confirms an upload is the bill's creator and can't approve it.
+- An EDI invoice from a connection profile with no payee link is recorded against a new payee, never refused; the EDI event is stored durably even when the
+  bill can't be created yet.
+- Deleting a source file within the retention period or on legal hold is refused; deleting a discarded draft's file without a ≥ 10-character justification
+  is refused.
 
 ### 9.3 Customer payments
 
@@ -763,6 +889,14 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW19 | Drawer limits configurable as allowed / amount per type, per tenant, per session running total; over/short tolerance joins; Order owns the settings | Platform owner (allowed / amount); details by the Accounting Domain Agent | §4.6 |
 | AW20 | Canadian input-tax recovery: 1250/1260, recovery flag, copied amounts, $100 registration-number rule, category recoverable % (meals 50%) | Accounting Domain Agent (delegated); **pending confirmation by a Canadian accountant** | §4.7 |
 | AW21 | Intake formats by priority (v1 / v2 / later) and the minimal CSV columns | Research presented to the platform owner | §4.8 |
+| AW22 | pos-accounting owns every human intake channel (upload, import, email-in documents, vendor statements), the `BillIntakeItem` draft, confirm, cross-channel duplicates and bill creation through one `BillIntakePort`; pos-supplier keeps only credentialed machine channels and never republishes uploads; a new extraction worker (utility) reads files; a new inbound-mail edge carries email; pos-invoice and pos-documents own none of it. Needs a new ADR, an ADR-0044 §1 classification and an ADR-0049 §1 scope note | Accounting, Positivity (Integrations) and Invoicing & Payments Domain Agents, jointly (OI-1) | §4.9, §7.4 |
+| AW23 | pos-accounting owns the payee (AP attributes only); many connection profiles link to one payee through an audited link pos-accounting owns; inventory vendor ids map through it; unlinked → new payee, never refused; remit-to and bank changes need a second person; payees are never customer parties; legal-party master deferred to the ADR | Same three agents | §4.9 |
+| AW24 | Source files stay in pos-accounting behind a vault-shaped `FileStore` port with retention purge and legal hold from v1; a platform file vault replaces it when a second module needs one; the supplier exchange audit stays separate | Same three agents | §7.4 |
+| AW25 | New permissions `accounting:bill_intake:create`, `accounting:bill_intake:manage`, `accounting:vendor_statement:reconcile`, `accounting:bill_source_file:delete`; no "invoice" in accounting paths or keys | Same three agents (final say: Accounting) | §7.4 |
+| AW26 | Extraction failure falls back to manual entry under the same rules; nothing is created automatically | Accounting Domain Agent | §4.9 |
+| AW27 | Vendor statements are reconciled by the AP clerk and post nothing; credits arrive as vendor credit notes through intake, never by adjusting an approved bill; partial payment of approved bills stays as it is | Accounting Domain Agent | §4.9 |
+| AW28 | EDI invoices are collected by pull; push would reverse architecture decision 7 and needs an ADR-0049 amendment and a dedicated authenticated ingress | Positivity (Integrations) Domain Agent; **platform owner confirms when choosing the EDI provider** | §4.8 |
+| AW29 | Inbound CFDI is an intake format (extraction worker → pos-accounting); outbound CFDI is pos-invoice's; the two share at most a non-deployed schema library; one later ADR amendment places SAT/PAC validation for both directions (one connector) | Same three agents | §4.8, §4.9 |
 
 ---
 
@@ -774,7 +908,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | 2 — Counter correctness | Customer required at checkout; CASH house account; partyId non-null; unpaid walk-in sales | Order, CRM, Invoicing & Payments sign-off |
 | 3 — Bill approvals | Roles and permissions; `AWAITING_APPROVAL` / `REJECTED`; approval endpoints and limits; SoD guards; Bills to pay review for EDI bills; Approval limits (Bills section) | Security sign-off; OI-2, OI-3 |
 | 4 — Cash and drawers | Float account and commands; drawer movement reasons, postings and limits; session policy; petty categories; undeposited sessions and Record bank deposit; cash-position and outlook read models; Approval limits (Drawer cash, Categories) | Phase 2; Order sign-off (R6.1) |
-| 5 — Bill intake | Upload, email-in, spreadsheet import, extraction and read-back, duplicate detection, vendor statements; PO matching (later) | OI-1 ruling |
+| 5 — Bill intake | Data fixes G14–G16 first (duplicate index, payee link, delivery-reference check); payees; `BillIntakeItem` and `BillIntakePort`; upload, spreadsheet import, read-back and confirm; extraction worker; inbound-mail edge and email-in; vendor statements; EDI adapter through `BillIntakePort`; PO matching (later) | New intake ADR accepted with the ADR-0044 §1 and ADR-0049 §1 amendments; extraction provider (OI-1); OI-11, OI-14 |
 | 6 — Canada | §4.7 items | ADR-0067 Stage A Canadian launch work and the PC-15 readiness sign-off (OP-9); Canadian accountant (OI-4) |
 
 ---
@@ -783,7 +917,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 
 | # | Item | Owner |
 | --- | --- | --- |
-| OI-1 | Which module owns bill uploads, email-in, spreadsheet import and extraction (pos-supplier under ADR-0049, or pos-accounting), and the extraction provider; possibly an ADR | Platform owner / architecture |
+| OI-1 | **Ownership resolved 2026-10-05 (AW22–AW29).** Remaining: choose the extraction provider and the EDI provider (confirming AW28); write and accept the intake ADR | Platform owner / architecture |
 | OI-2 | Reconcile the two vendor-bill GL posting triggers (goods-receipt bills post at creation; EDI bills are meant to post at approval but don't) and confirm their accounts | Accounting Domain Agent — **blocks Phase 3** |
 | OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent — **blocks Phase 3** |
 | OI-4 | Canadian accountant confirmation of the 50% meals rule, the $100/$500 thresholds and PST treatment | Platform owner |
@@ -793,6 +927,10 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | OI-8 | Intake path for unidentified customer receipts (bank credit or mailed check) and the `assign-customer` endpoint | Accounting Domain Agent |
 | OI-9 | Treatment of FET, tire/environmental fees and core charges on vendor bills | Accounting Domain Agent (must ask the owner) |
 | OI-10 | Opening bank balances at go-live through 3900, same pattern as the go-live float | Accounting Domain Agent |
+| OI-11 | Whether EDI invoices pass through a read-back draft or become bills directly, and whom AW6.1 names as their creator | Accounting Domain Agent |
+| OI-12 | Where SAT / PAC validation of CFDI lives, for both directions (one connector), when Mexico is scheduled | Accounting + Invoicing & Payments (ADR amendment) |
+| OI-13 | Allocating vendor credit notes against open bills (new capability) | Accounting Domain Agent |
+| OI-14 | Payee maintenance: the permission for creating payees and linking profiles, and the second-person flow for remit-to and bank-detail changes | Accounting + Security |
 
 ---
 
@@ -800,10 +938,24 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 
 Made with this specification: [`index.md`](index.md) links it; `knowledge-catalog/` regenerated; addition recorded in `knowledge-catalog/log.md`.
 
+With the bill-intake ruling (AW22–AW29), before Phase 5 stories:
+
+- A new ADR, "Bill intake ownership and inbound untrusted files", recording AW22–AW29, the `FileStore` port and the security controls of §7.4.
+- ADR-0044 §1: classify the extraction worker (utility) and the inbound-mail edge.
+- ADR-0049 §1 scope note: "Supplier connectivity means credentialed machine-to-machine exchanges with a vendor or its EDI / API provider. Supplier documents
+  arriving any other way (uploaded, imported or emailed) are AP intake owned by pos-accounting; pos-supplier neither stores nor republishes them. An inbound
+  vendor channel requires an amendment to this ADR (architecture §12 decision 7)."
+- ADR-0049 amendment at v2 for X12 855 and 856 (§4.8).
+- Billing documentation, once the ADR is accepted: retire BILL-DEC-013 and the `billing:ap:*` keys and state that AP payments belong to pos-accounting
+  (`domains/billing/.business-rules/AGENT_GUIDE.md`, `DOMAIN_NOTES.md`, `STORY_VALIDATION_CHECKLIST.md`); replace the BILL-DEC-008 `billing:*` permission table
+  with the registered `invoice:*` keys (`InvoicePermissions.java`); pin `pos-invoice` to `billing` in `MODULE_DOMAIN`
+  (`scripts/generate-knowledge-catalog.py`), regenerate the catalog and log it.
+
 To change when the stories land: `pos-accounting/README.md` (endpoints, settings, error codes, events); `.business-rules/ERROR_CODES.md`
 (`AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`, `AP_BILL_NOT_APPROVABLE`, `AP_PAYMENT_SELF_APPROVED_BILL`, `FLOAT_ALREADY_ESTABLISHED`,
-`TAX_AMOUNT_IMPLAUSIBLE`, `PAYMENT_CUSTOMER_ALREADY_ASSIGNED`); `VendorBillServiceImpl` Javadoc and comments (PO weight is 5, HIGH is ≥ 70);
+`TAX_AMOUNT_IMPLAUSIBLE`, `PAYMENT_CUSTOMER_ALREADY_ASSIGNED`, `AP_BILL_DUPLICATE`, `BILL_INTAKE_FIELDS_UNCHECKED`); `VendorBillServiceImpl` Javadoc and
+comments (PO weight is 5, HIGH is ≥ 70);
 `.business-rules/PERMISSION_TAXONOMY.md` (the new keys; remove the unregistered `accounting:ap:approve` placeholder text in favour of
-the registered one); `.business-rules/DOMAIN_MODEL.md` (vendor-bill statuses); `.business-rules/AGENT_GUIDE.md` (AW decisions as AD entries; the eligible-invoices
+the registered one); `.business-rules/DOMAIN_MODEL.md` (vendor-bill statuses, `BillIntakeItem`, payee); `.business-rules/AGENT_GUIDE.md` (AW decisions as AD entries; the eligible-invoices
 and payments-list endpoints); `domains/order/spec-pos-order-missing-functionality.md` (R11.2, R6.1); `domains/security/` RBAC audit (roles); frontend
 `design/source/theme-tokens.md` (chart tokens); `pos-order/README.md` (session policy, reasons).
