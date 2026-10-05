@@ -9,7 +9,8 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 
 ## SPEC — Accounting Workspace
 
-> Status: PROPOSED · Created 2026-10-05 · Reviewed by the Accounting Domain Agent 2026-10-05 (18 corrections applied) · Design canvas: [Accounting Command Center](https://claude.ai/artifact/46hejFzE3MLi94JEXRkXCh) (five artboards) ·
+> Status: PROPOSED · Created 2026-10-05 · Reviewed by the Accounting Domain Agent 2026-10-05 (18 corrections applied) · Design canvas: [Accounting Command
+> Center](https://claude.ai/artifact/46hejFzE3MLi94JEXRkXCh) (five artboards) ·
 > Branch: `durion-claude/serene-fermi-bhiy62`
 >
 > Purpose: specify a new accounting workspace in `durion-positivity-frontend` for people who are **not** trained accountants — a shop owner, office manager or
@@ -54,8 +55,6 @@ Frontend paths are relative to `durion-positivity-frontend/`, backend paths to `
 
 ### 1.2 Backend
 
-| Concern | EXISTING behaviour | Where |
-| --- | --- | --- |
 `ACC` = `pos-accounting/src/main/java/com/positivity/accounting/internal/`; `ORD` = `pos-order/src/main/java/com/positivity/order/internal/`; `EVT` =
 `pos-domain-events/src/main/java/com/positivity/domainevents/`.
 
@@ -260,7 +259,8 @@ and new values, actor and justification.
 
 - **Undeposited-sessions read model** in `pos-accounting`, built from `RegisterSessionClosedV1` (already consumed): counted cash, theoretical cash, over/short,
   cash and check tender totals, plus check receipts taken outside the register. No synchronous call to pos-order (ADR-0044).
-- **Record bank deposit** command: a `BANK_CASH` account, deposit date, the selected sessions' `BANK_DROP` movements (bag numbers) plus selected checks — a session is deposited whole: all its drops in one deposit, which also clears its 1095 net —
+- **Record bank deposit** command: a `BANK_CASH` account, deposit date, the selected sessions' `BANK_DROP` movements (bag numbers) plus selected checks — a session is
+  deposited whole: all its drops in one deposit, which also clears its 1095 net —
   `requestId` (idempotency), optional deposit-slip reference. Posting category `BANK_DEPOSIT` (mapping keys `UNDEPOSITED_FUNDS` → 1090,
   `CASH_CLEARING` → 1095; accounts never hard-coded): Dr bank (amount deposited) / Cr 1090 (selected items' expected cash and checks) / Dr or Cr 1095 (the
   selected sessions' net). Unbalanced → 422 with the difference; no plug line. Card tenders excluded (settlement entries clear them).
@@ -367,7 +367,8 @@ Applies only to CAD tenants whose GST/HST registration is recorded; the backend 
 
 Minimal CSV columns — required: `supplier_name`, `invoice_number`, `invoice_date`, `due_date` (or `terms`), `line_description`, `line_amount`; recommended:
 `document_type` (invoice / credit memo), `po_number` or `supplier_order_number`, `part_number`, `quantity`, `unit_cost`, `core_charge`, `fees` (FET, tire and
-environmental; treatment open, OI-9), `tax_amount`, `freight`, `invoice_total` (control total), `ro_number`, `currency` (default functional). Header fields repeat on each line row.
+environmental; treatment open, OI-9), `tax_amount`, `freight`, `invoice_total` (control total), `ro_number`, `currency` (default functional). Header fields repeat on each
+line row.
 
 Whatever the channel, nothing is owed until a person checks the read-back and the bill is approved (§4.3). Read-back fields carry a confidence state; a field the
 reader is unsure of is marked "Check this" and blocks confirmation until a person accepts or corrects it.
@@ -458,8 +459,8 @@ inside the dialog without losing input (`.dialog-error`).
    - Document preview with the location of each read value highlighted, open full size.
    - **What we read** form (vendor with "matches a vendor you buy from" / "new vendor — add", invoice number, PO, invoice date, due date with "worked out from
      Net 30 — check it", tax on the invoice, total). Low-confidence fields carry "Check this".
-   - Checks list: not a duplicate (vendor + invoice number + date); matches delivery `REC-…`; prices within tolerance of the delivery; within / over the clerk limit. (A "vendor
-     payment details unchanged" check is PROPOSED only once vendor bank details exist as data.)
+   - Checks list: not a duplicate (vendor + invoice number + date); matches delivery `REC-…`; prices within tolerance of the delivery; within / over the clerk limit.
+     (A "vendor payment details unchanged" check is PROPOSED only once vendor bank details exist as data.)
    - Lines table: Item (+ SKU) · Ordered · Received · Billed · Price each · Amount; subtotal; tax as shown on the invoice; total.
    - Match score chip with breakdown and "What's a match score?".
    - Approval routing note and "Why can't I approve my own bill?" (AW6.1).
@@ -470,7 +471,8 @@ inside the dialog without losing input (`.dialog-error`).
 
 1. Header: overline "Accounting · Money owed to you"; action Who owes what.
 2. Four stat cards: customers owe you; overdue; payments waiting to be matched; credits customers can use.
-3. Standfirst ("payments taken at the counter never show up here") and four numbered steps (pick · tick · check left over · apply).
+3. Standfirst ("payments taken at the counter skip this list: they're matched as soon as they're taken and show under Matched automatically") and four
+   numbered steps (pick · tick · check left over · apply).
 4. Left: payments waiting (customer or "Check #…", method · date, amount, badge) and a "Matched automatically this week" disclosure with Undo per item.
 5. Right — selected payment:
    - Reason chips and "Why these invoices?".
@@ -498,7 +500,8 @@ inside the dialog without losing input (`.dialog-error`).
    so the total equals 1200; "Who to call first" tip) and vendors (Not due yet, Overdue, Due date estimated, Total; every open bill, with unapproved bills in
    their own column, so the total equals 2000).
 6. All entries: search by entry #, invoice #, customer or vendor; account filter; Entry · Date · What happened · Amount · Status (Recorded, Correction, Reversed)
-   with "What do Correction and Reversed mean?". An entry opens `books/entries/:entryNumber` (JE detail with traceability; reverse with reason, `accounting:je:reverse`).
+   with "What do Correction and Reversed mean?". An entry opens `books/entries/:journalEntryId` — routed by id so a reload or shared link can fetch it
+   (`GET /v1/accounting/journal-entries/{id}`), while the page shows only the business reference `JE-YYYYMM-n` (P8) — with traceability; reverse with reason, `accounting:je:reverse`.
 
 ### 5.5 Approval limits — `/app/accounting/settings/approval-limits`
 
@@ -509,8 +512,10 @@ you changing this?" ≥ 10 characters; consequence sentence; Save · Undo change
   disclosure with the who-can-do-what table and the always-on rules.
 - *Drawer cash*: per type an **Allowed** switch (`<input type="checkbox" role="switch">` with a label) and the cashier amount (disabled while off); bank drops
   and float changes as read-only rows; the over/short tolerance; "How are limits counted?"; "What this means at the register" examples.
-- *Petty-expense categories*: Category · Examples · Recorded in (name + account number) · Status; **Add category** visible but `aria-disabled` for non-controllers
-  with the reason; the never-from-the-drawer list; the tax sentence. CAD tenants with recovery on: the tax-registration panel (read-only, link to tax settings),
+- *Petty-expense categories*: Category · Examples · Recorded in (name + account number) · Status; **Add category**, relabel and deactivate shown only with
+  `accounting:mapping-key:create` / `:edit` / `:deactivate`, and remapping an account only with `accounting:gl-mapping:create` (P5: hidden, not disabled);
+  without them the list is read-only with the note "Changes to categories are made by someone who manages your chart of accounts"; the never-from-the-drawer list; the tax
+  sentence. CAD tenants with recovery on: the tax-registration panel (read-only, link to tax settings),
   a **GST/HST claimed back** column (All of it / Half (50%)), and the cashier's three steps.
 - *History*: Date · Changed by (name and role) · Change (old → new) · Reason.
 
@@ -561,6 +566,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Work items (to-do) | `GET /v1/accounting/work-items?area=&cursor=` · per item type | Read model over bill exceptions and approvals, unapplied payments, unmatched bank lines, undeposited sessions, reconciliations awaiting approval, unpaid walk-in sales; filtered server-side by the caller's permissions; each item carries type, business references, plain reason code, amount, status and the actions the caller may take |
 | Done automatically | `GET /v1/accounting/work-items/automatic?since=` · as above | Auto-applied payments, auto-matched bank lines, auto-approved bills, with undo where the underlying command supports reversal |
 | Unapplied payments | `GET /v1/accounting/receivable-payments?status=AVAILABLE` · `accounting:payment:apply` | Closes G4; with match suggestions (customer, exact total, remittance references) |
+| Assign customer (one time) | `POST /v1/accounting/receivable-payments/{paymentId}/customer-assignment` · `accounting:payment:assign-customer` | Depends on OI-8 (an unidentified receipt must exist first). Body `{customerId, justification (≥ 10 characters), requestId}`; response: the payment with its customer, `assignedAt`, `assignedBy`. One time only: a payment that already has a customer → 409 `PAYMENT_CUSTOMER_ALREADY_ASSIGNED` (a wrong assignment is corrected by reversing the payment's applications and the payment, never by reassigning). Idempotent on `requestId`: a replay returns the first result. Actor from the security context (ADR-0018); one audit row with actor, customer, justification and request id; event `ACCOUNTING_PAYMENT_CUSTOMER_ASSIGN` |
 | Eligible invoices | `GET /v1/accounting/customers/{customerId}/open-invoices` · `accounting:payment:apply` | Derived balance due (net of credits, memos and deposits, contract guide CAP-052); pos-invoice search does not net them |
 | Automatic application | listener on `PaymentSettledV1` | AW14; Dr 1090 / Cr 1200 at `settledAt` |
 | Vendor-bill approval | `POST /v1/accounting/vendor-bills/{id}/submit-for-approval` · `…/approve` · `…/reject` (same base) · `accounting:ap:approve` / `…:approve_over_limit`; reject `accounting:ap:reject` | §4.3; 403 `AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`; 422 `AP_BILL_NOT_APPROVABLE` (e.g. `CURRENCY_HOLD`) |
@@ -580,7 +586,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Seed | accounts 1080, 3000, 3900, 6100–6180; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`; tenant settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION` | repeatable seeds |
 | Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path | DB check constraint |
 | Permissions | register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject`; new `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage` | registry + security catalog |
-| Events | `ACCOUNTING_VENDOR_BILL_SUBMIT`, `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed`, `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
+| Events | `ACCOUNTING_PAYMENT_CUSTOMER_ASSIGN`, `ACCOUNTING_VENDOR_BILL_SUBMIT`, `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed`, `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
 | CAD | `inputTaxRecoveryEnabled`; 1250/1260 postings; vendor-bill tax split | §4.7 |
 
 ### 7.2 `pos-order`
@@ -608,6 +614,28 @@ Upload (multipart), email-in (per-tenant address), spreadsheet import with mappi
 detection on (vendor, invoice number, invoice date), multi-invoice split, retention of the source file, creator recorded for AW6.1. ADR-0049 places vendor wire
 formats in one integration module; whether uploads and extraction live there or in `pos-accounting` needs a ruling (and possibly an ADR) before stories.
 
+**Security controls (normative, whichever module owns intake).** Every uploaded file and email attachment is untrusted input.
+
+1. **Quarantine first.** Files land in tenant-scoped quarantine storage and are not parsed, previewed or downloadable until validation and scanning pass.
+2. **Content validation.** Allow-list of types by magic bytes, not by extension or declared MIME type (PDF, JPEG, PNG, HEIC, TIFF, CSV, XLSX); size ≤ 25 MB per file
+   and ≤ 20 attachments per email; PDFs ≤ 30 pages; reject encrypted or password-protected PDFs and PDFs with JavaScript, launch actions or embedded files;
+   XLSX without macros (refuse `.xlsm` and VBA parts); CSV treated as data only, and any cell beginning `=`, `+`, `-` or `@` neutralised on every re-export.
+3. **Malware scanning** before any parser runs; a positive or failed scan rejects the file with a plain message and keeps no parsed output.
+4. **Parser isolation.** Extraction runs in an isolated worker with CPU, memory, time and decompression-ratio limits; a limit breach rejects the file.
+5. **Preview.** The browser shows a server-rendered image of each page or a sandboxed viewer with scripting disabled; extracted text is rendered as text, never as
+   HTML (ADR-0065).
+6. **Tenant isolation and authorization.** Storage keys and metadata rows carry `tenant_id` under row-level security (ADR-0062); a file is served only through
+   an authorized endpoint (`accounting:ap:view`) that checks tenant and permission on every request, never through a public or long-lived URL; a 403 or 404
+   never reveals whether the file exists.
+7. **Email-in.** One unguessable address per tenant, rotatable; mail must pass SPF/DKIM/DMARC alignment; optional sender allow-list per vendor; rate limits per
+   address; a rejected email is reported to the shop, not to the sender.
+8. **Retention and deletion.** Source files are kept with the bill for a configurable period (default 7 years, matching bank-statement files, SPEC-manual-
+   bank-reconciliation D13); deletion is an audited administrator action and is blocked while the bill is open or under legal hold; rejected and discarded
+   uploads are purged after 30 days.
+9. **Audit.** Upload, scan result, extraction, every view and download, and deletion are audited with actor, tenant and file hash.
+10. **No auto-trust.** Extracted values are suggestions; nothing posts or becomes owed until a person confirms the read-back and the bill is approved (§4.3,
+    §4.8).
+
 ---
 
 ## 8. Frontend implementation notes
@@ -619,7 +647,8 @@ formats in one integration module; whether uploads and extraction live there or 
 | `''` | `AccountingHomePageComponent` (replaces the landing) | any accounting permission (existing group gate) |
 | `bills`, `bills/:billId` | `BillsPageComponent` | `accounting:ap:view` |
 | `payments` | `CustomerPaymentsPageComponent` | `accounting:payment:apply` |
-| `books`, `books/entries/:entryNumber` | `BooksPageComponent`, `JournalEntryDetailPageComponent` | `reporting:view:financial-statements`, `accounting:coa:view`, `accounting:je:view` |
+| `books` | `BooksPageComponent` | any of `reporting:view:financial-statements`, `accounting:coa:view`, `accounting:je:view`; each tab is shown only with its own permission (Summary and Who owes what: `reporting:view:financial-statements`; All entries: `accounting:je:view`; account drill-down lists: `accounting:coa:view` or `reporting:view:financial-statements`) |
+| `books/entries/:journalEntryId` | `JournalEntryDetailPageComponent` | `accounting:je:view` only (its own gate; the any-of gate above never reaches it) |
 | `settings/approval-limits` | `ApprovalLimitsPageComponent` | `accounting:ap_approval_policy:manage` or `order:session_policy:manage` or `accounting:mapping-key:edit` |
 
 Old routes `payments/apply` and `payables/vendor-invoices*` redirect to the new ones (pre-production: no shims beyond redirects). Constants are added to
@@ -630,7 +659,9 @@ Old routes `payments/apply` and `payables/vendor-invoices*` redirect to the new 
 - Feature services wrap the generated SDK (ADR-0041): EXISTING `FinancialReportingService`, `GLAccountsService`, `JournalEntriesService`,
   `PaymentApplicationsService`, `VendorBillAPIService`, `APPaymentsService`, `BankAccountsService`, `BankReconciliationService`, `AccountingPeriodsService`,
   `InvoiceSearchService`, `SupplierInvoicesService`; PROPOSED operations of §7.
-- Idempotency keys (`applicationRequestId`, `requestId`, `paymentRef`) are generated in the frontend per submit.
+- Idempotency keys (`applicationRequestId`, `requestId`, `paymentRef`) are generated in the frontend **once per user intent** — when the form or dialog
+  opens — and reused for double clicks and retries, including timeouts and unknown outcomes. A key is rotated only after a confirmed success, or when the
+  person explicitly starts over (Start over, closing the dialog, choosing a different payment). The submit button is also disabled while a request is in flight.
 - The **Show accounting terms** and **Start here** preferences persist per person (server-side user preference; `localStorage` only as a cache).
 - Never send a tenant id; never hard-code enums (adjustment types, categories, reasons come from the server; unknown values render as "Unknown").
 - No `HttpClient` in features; no client-side money arithmetic beyond the input preview of §5.3.
@@ -669,7 +700,11 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 - Suggested invoices are pre-ticked; unticking updates the preview; over-application disables Apply and announces the error; leftover offers credit/refund;
   refund asks for confirmation.
 - Submitting twice with the same `applicationRequestId` applies once; the server's result replaces the preview.
-- Assigning a customer without a ≥ 10-character reason is refused.
+- Assigning a customer without a ≥ 10-character reason is refused (422).
+- Assigning a customer to an unidentified payment succeeds once: the response carries the customer, `assignedAt` and `assignedBy`, and the payment then appears
+  with that customer's suggested invoices.
+- A second assignment to the same payment → 409 `PAYMENT_CUSTOMER_ALREADY_ASSIGNED`; replaying the first request with the same `requestId` returns the first
+  result and writes no second audit row.
 
 ### 9.4 Counter and drawer (backend)
 
@@ -767,7 +802,8 @@ Made with this specification: [`index.md`](index.md) links it; `knowledge-catalo
 
 To change when the stories land: `pos-accounting/README.md` (endpoints, settings, error codes, events); `.business-rules/ERROR_CODES.md`
 (`AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`, `AP_BILL_NOT_APPROVABLE`, `AP_PAYMENT_SELF_APPROVED_BILL`, `FLOAT_ALREADY_ESTABLISHED`,
-`TAX_AMOUNT_IMPLAUSIBLE`); `VendorBillServiceImpl` Javadoc and comments (PO weight is 5, HIGH is ≥ 70); `.business-rules/PERMISSION_TAXONOMY.md` (the new keys; remove the unregistered `accounting:ap:approve` placeholder text in favour of
+`TAX_AMOUNT_IMPLAUSIBLE`, `PAYMENT_CUSTOMER_ALREADY_ASSIGNED`); `VendorBillServiceImpl` Javadoc and comments (PO weight is 5, HIGH is ≥ 70);
+`.business-rules/PERMISSION_TAXONOMY.md` (the new keys; remove the unregistered `accounting:ap:approve` placeholder text in favour of
 the registered one); `.business-rules/DOMAIN_MODEL.md` (vendor-bill statuses); `.business-rules/AGENT_GUIDE.md` (AW decisions as AD entries; the eligible-invoices
 and payments-list endpoints); `domains/order/spec-pos-order-missing-functionality.md` (R11.2, R6.1); `domains/security/` RBAC audit (roles); frontend
 `design/source/theme-tokens.md` (chart tokens); `pos-order/README.md` (session policy, reasons).
