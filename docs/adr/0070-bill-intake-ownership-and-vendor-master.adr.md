@@ -31,7 +31,7 @@ Domain, Architecture
   decision 7): every exchange is initiated by Durion.
 - **ADR-0020** makes pos-documents the platform's document *renderer* (outbound).
 - **Duplicates.** The EDI listener looks for an existing bill by (`vendorId`, `billNumber`) only — no invoice date — and `vendor_bill` has no business-key
-  unique constraint (`VendorBillRepository.java` l.186, `SupplierInvoiceEventsListener.java` l.205-208, `V1__baseline_accounting.sql` l.1541-1544).
+  unique constraint (`VendorBillRepository.java` l.187, `SupplierInvoiceEventsListener.java` l.205-208, `V1__baseline_accounting.sql` l.1541-1544).
 - **Vendor identity is split three ways.** EDI bills set `vendorId` to the pos-supplier connection-profile id; goods-receipt bills use the purchase order's
   `vendor_id`, which the client supplies and nothing validates (`V1__baseline_order.sql` l.298-302); pos-accounting keeps its own `ap_vendor` directory.
   Goods-receipt bills also carry a generated bill number, not the vendor's (`VendorBillServiceImpl.java` l.120-122).
@@ -114,7 +114,7 @@ connection: `vendorId` (UUIDv7), `vendorNumber` (ADR-0064 business reference), `
   `supplier:vendor:write`.
 - The fact `supplier.vendor.updated` (v1, on `supplier.events.v1`, keyed by `vendorId`) carries every vendor field; deactivation is `status = INACTIVE`.
   pos-supplier publishes per-tenant manifests on `supplier.manifest.v1` and re-sends on request (ADR-0044 §4).
-- pos-accounting, pos-order and (if purchase suggestions need it) pos-inventory keep `ext_supplier_vendor` copies under R3. The copies hold **every** vendor
+- pos-accounting, pos-order and pos-inventory keep `ext_supplier_vendor` copies under R3. The copies hold **every** vendor
   with its status, because open bills and history still name deactivated vendors; only active vendors accept new bills, payments and purchase orders.
 - `VendorBill.vendorId`, the AP-payment vendor id and the purchase-order vendor id are the pos-supplier vendor id. `SupplierInvoiceReceivedV1` gains a nullable
   `vendorId` that pos-supplier always sets. pos-order validates a new purchase order's vendor against its copy. pos-accounting's `ap_vendor` directory is
