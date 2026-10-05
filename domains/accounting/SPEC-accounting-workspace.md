@@ -339,8 +339,8 @@ The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per
 
 - The numbers leave the EXISTING 6115 Cash Short in place between 6100 and 6120.
 - **Number collision (found while cutting stories):** the default tenant already holds 6110–6170 from `V2__seed_accounting.sql` with other meanings.
-  The chart story fixes the final numbers: it reuses an existing account only where the meaning matches, otherwise takes a free 61xx number, and never
-  renames an existing account.
+  The chart story (S15, louisburroughs/durion-positivity-backend#2511) fixes the final numbers and never renames an existing account. Its proposal,
+  pending the Accounting Domain Agent: 6100 and 6180 stay; the other six move to 6125, 6135, 6145, 6155, 6165 and 6175.
 - Stored as mapping keys `PETTY_EXPENSE_<CODE>` under `REGISTER_CASH_MOVEMENT`; add / relabel / deactivate with `accounting:mapping-key:create|edit|deactivate`;
   remap with `accounting:gl-mapping:create` (effective-dated, non-overlapping); CONTROLLER and ADMIN only. Codes are permanent; categories are deactivated,
   never deleted. No "Other". `accounting.petty-expense-category.changed` lets pos-order keep the cashier's picker (ADR-0044).
@@ -950,16 +950,65 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | 5 — Bill intake | Vendor master in pos-supplier and the copies in pos-accounting and pos-order (G15); delivery-reference check (G16); `BillIntakeItem` and `BillIntakePort`; upload, spreadsheet import, read-back and confirm; extraction worker; inbound-mail edge and email-in; vendor statements; EDI adapter through `BillIntakePort`; PO matching (later) | New intake ADR accepted with the ADR-0044 §1, ADR-0049 and ADR-0050 amendments; the G14 defect fix; extraction provider (OI-1); OI-11, OI-14 |
 | 6 — Canada | §4.7 items | ADR-0067 Stage A Canadian launch work and the PC-15 readiness sign-off (OP-9); Canadian accountant (OI-4) |
 
+### 11.1 Stories (capability CAP:550, louisburroughs/durion#550)
+
+Cut on 2026-10-05. Each story records its own open points under "Dependencies" and "Spec discrepancy". Two stories were added while cutting:
+S35 (report and payment prerequisites the frontend needs) and S37 (pos-accounting provisions each new tenant on `tenant.created`; every seed
+binds only the default tenant today). S36 makes pos-inventory name pos-supplier vendors.
+
+| Story | Phase | Title | Issue |
+| --- | --- | --- | --- |
+| S0 | 0 | Vendor bills: one duplicate rule (vendor, normalised bill number, bill date) enforced by a partial unique index | louisburroughs/durion-positivity-backend#2501 |
+| S1 | 1 | Customer payments: unapplied-payments list and a customer's open invoices | louisburroughs/durion-positivity-backend#2502 |
+| S2 | 1 | Settled payments apply automatically to the invoice they were taken against | louisburroughs/durion-positivity-backend#2503 |
+| S3 | 1 | Accounting roles: ACCOUNTING_CLERK and GENERAL_MANAGER template roles and Phase-1 grants | louisburroughs/durion-positivity-backend#2504 |
+| S35 | 1 | Workspace report and payment prerequisites: seeded statement line mappings, an aging split by due state, crediting a payment's remainder, customer names on aged receivables, export without organizationId | louisburroughs/durion-positivity-backend#2524 |
+| S37 | 1 | pos-accounting provisions each new tenant: chart of accounts, GL mapping defaults and statement lines on tenant.created | louisburroughs/durion-positivity-backend#2526 |
+| S4 | 1 | Accounting workspace shell and home (v1): sub-navigation, help pattern, money lanes and to-do list from existing reads | louisburroughs/durion-positivity-frontend#460 |
+| S5 | 1 | Your books: balance summary, who owes what, all entries and the journal-entry page | louisburroughs/durion-positivity-frontend#461 |
+| S6 | 1 | Customer payments: match a payment to the invoices it pays (replaces Apply payment) | louisburroughs/durion-positivity-frontend#462 |
+| S7 | 2 | CASH house account per tenant in pos-customer | louisburroughs/durion-positivity-backend#2505 |
+| S8 | 2 | Checkout requires a customer; walk-in (CASH) only when paid in full | louisburroughs/durion-positivity-backend#2506 |
+| S9 | 2 | Invoices and payments refuse a missing customer; PaymentSettledV1.partyId becomes non-null | louisburroughs/durion-positivity-backend#2507 |
+| S10 | 2 | Register checkout: pick a customer before tender, with Walk-in for paid-in-full sales | louisburroughs/durion-positivity-frontend#463 |
+| S11 | 2 | Unpaid walk-in sales: CASH balance read and day-end needs-attention item | louisburroughs/durion-positivity-backend#2508 |
+| S12 | 3 | Vendor-bill approval lifecycle: AWAITING_APPROVAL, approve, reject, and approval fields written only by an approval | louisburroughs/durion-positivity-backend#2509 |
+| S13 | 3 | Approval limits and separation of duties for bills | louisburroughs/durion-positivity-backend#2510 |
+| S14 | 3 | Bills to pay (EDI and goods-receipt bills) and the Bills section of Approval limits | louisburroughs/durion-positivity-frontend#464 |
+| S15 | 4 | Chart of accounts, float and petty-expense categories | louisburroughs/durion-positivity-backend#2511 |
+| S16 | 4 | Drawer movements: fixed reasons, session policy (allowed / amount), elevation and the close fact v2 | louisburroughs/durion-positivity-backend#2512 |
+| S17 | 4 | Drawer movements post to the ledger; vendor cash on delivery becomes an AP payment | louisburroughs/durion-positivity-backend#2513 |
+| S18 | 4 | Bank deposits of drawer cash: undeposited sessions and Record / reverse deposit | louisburroughs/durion-positivity-backend#2514 |
+| S19 | 4 | Cash position, 30-day outlook and the to-do (work items) read models | louisburroughs/durion-positivity-backend#2515 |
+| S20 | 4 | Home: Your cash, the 30-day outlook, Record bank deposit and the full to-do list | louisburroughs/durion-positivity-frontend#465 |
+| S21 | 4 | Approval limits: Drawer cash and Petty-expense categories sections | louisburroughs/durion-positivity-frontend#466 |
+| S22 | 4 | Register: drawer cash in / out with fixed reasons and manager elevation | louisburroughs/durion-positivity-frontend#467 |
+| S23 | 5 | pos-supplier vendor master: Vendor, remit-to approval, supplier.vendor.updated and the vendor manifest | louisburroughs/durion-positivity-backend#2516 |
+| S24 | 5 | Vendor copies and one vendor key: ext_supplier_vendor in pos-accounting and pos-order, ap_vendor retired, remit-to check at payment | louisburroughs/durion-positivity-backend#2517 |
+| S25 | 5 | Bill intake core: BillIntakeItem, BillIntakePort, FileStore and the upload / import / confirm commands | louisburroughs/durion-positivity-backend#2518 |
+| S26 | 5 | Extraction worker: an isolated utility that reads untrusted invoice files | louisburroughs/durion-positivity-backend#2519 |
+| S27 | 5 | Email-in: the inbound-mail edge and pos-accounting's email-in settings | louisburroughs/durion-positivity-backend#2520 |
+| S28 | 5 | Vendor statements: upload, reconcile (posts nothing) and vendor credit notes through intake | louisburroughs/durion-positivity-backend#2521 |
+| S29 | 5 | Bills to pay: add bills (upload, spreadsheet import, email-in) and check the read-back | louisburroughs/durion-positivity-frontend#468 |
+| S30 | 5 | Vendors: the pos-supplier vendor master pages, remit-to change approval and "Add vendor" | louisburroughs/durion-positivity-frontend#469 |
+| S36 | 5 | pos-inventory: purchase suggestions name the pos-supplier vendor (vendor copy and feed mapping) | louisburroughs/durion-positivity-backend#2525 |
+| S31 | 6 | pos-tax: Canadian rates and registrations, and the tax-amount plausibility lookup | louisburroughs/durion-positivity-backend#2522 |
+| S32 | 6 | Canadian input-tax recovery in pos-accounting | louisburroughs/durion-positivity-backend#2523 |
+| S33 | 6 | Canada: recovery columns and the registration panel | louisburroughs/durion-positivity-frontend#470 |
+| S34 | all | Accounting workspace: documentation, ADR-0070 amendments and API Artifacts Sync | louisburroughs/durion#552 |
+
+Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 · C2 Canada louisburroughs/durion#553 · extraction provider louisburroughs/durion#549.
+
 ---
 
 ## 12. Open items and sign-offs
 
 | # | Item | Owner |
 | --- | --- | --- |
-| OI-1 | **Ownership resolved 2026-10-05 (AW22–AW29).** Remaining: choose the extraction provider and the EDI provider (confirming AW28); write and accept the intake ADR | Platform owner / architecture |
-| OI-2 | Reconcile the two vendor-bill GL posting triggers (goods-receipt bills post at creation; EDI bills are meant to post at approval but don't) and confirm their accounts | Accounting Domain Agent — **blocks Phase 3** |
-| OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent — **blocks Phase 3** |
-| OI-4 | Canadian accountant confirmation of the 50% meals rule, the $100/$500 thresholds and PST treatment | Platform owner |
+| OI-1 | **Ownership resolved 2026-10-05 (AW22–AW29).** Remaining: choose the extraction provider (louisburroughs/durion#549) and the EDI provider (confirming AW28); accept ADR-0070 | Platform owner / architecture |
+| OI-2 | Reconcile the two vendor-bill GL posting triggers (goods-receipt bills post at creation; EDI bills are meant to post at approval but don't) and confirm their accounts | Accounting Domain Agent — **blocks Phase 3** (louisburroughs/durion#551) |
+| OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent — **blocks Phase 3** (louisburroughs/durion#551) |
+| OI-4 | Canadian accountant confirmation of the 50% meals rule, the $100/$500 thresholds and PST treatment | Platform owner (Phase 6 questions: louisburroughs/durion#553) |
 | OI-5 | Sign-offs: Order (R11.2 reversal, checkout rule, movement reasons, float, R6.1 replacement); CRM (house account); Invoicing & Payments (backstops, `PaymentSettledV1` contract, reassignment of a finalized invoice); Security (roles, permissions) | Domain agents |
 | OI-6 | Safety cushion: tenant setting name, who may set it (proposed `accounting:ap_approval_policy:manage` holders) and whether it raises a home-pane warning only or also a notification | Platform owner |
 | OI-7 | True 2-way / 3-way purchase-order matching (the "Ordered" column) | Accounting + Order |
