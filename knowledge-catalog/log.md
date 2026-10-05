@@ -5,6 +5,9 @@
 * **Updated**: `domains/accounting.md` indexes the new accounting workspace specification
   `domains/accounting/SPEC-accounting-workspace.md` (81 documents). Only that entry was regenerated; timestamp drift in unrelated
   entries and a new backend module (`pos-kafka-common`) were left for a full regeneration.
+* **Added**: `adr/0070-bill-intake-ownership-and-vendor-master.md` for the proposed ADR-0070; `adr/index.md` and the root index count it.
+* **Pinned**: `pos-supplier` to `positivity` in `MODULE_DOMAIN`. The accounting workspace specification now names it more often than the
+  positivity documents do, which would otherwise move its ownership to accounting.
 
 ## 2026-10-03
 
