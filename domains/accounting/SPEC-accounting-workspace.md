@@ -200,7 +200,8 @@ A projection, labelled as such, never posted.
   the comparison, because they are not in the line. Written by `PUT /v1/accounting/configuration/cash-safety-cushion` with
   `{amount | null, currencyCode, justification (≥ 10 characters), requestId}`: null = unset; `currencyCode` is ISO 4217 (ADR-0067 R-1, R-3, R-5) and must be
   the functional currency (R-6), else 422 `CURRENCY_NOT_SUPPORTED` (ADR-0067 PC-9); an unknown code, a negative amount or too many decimals → 400; the GET
-  returns `{amount, currencyCode}`; a change is audited old → new with actor and roles. Who may set it and whether a notification is sent: §12 OI-6.
+  returns `{amount, currencyCode}`; a change is audited old → new with actor and roles. The PUT is gated by `accounting:period:hard_lock`
+  (CONTROLLER, ADMIN), the `/v1/accounting/configuration` family's gate; the warning is the only signal, with no notification (§12 OI-6).
 - Output: daily points (the chart samples them), lowest point and its date, expected in, expected out, possible out, the count and amount of estimated-due-date
   bills.
 
@@ -724,7 +725,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | System approver | recorded on automatic approvals | identity and the automatic limit in force |
 | Bill GL posting at approval | depends on OI-2 / OI-3 | EDI bills |
 | AP approval policy | `GET/PUT /v1/accounting/ap-approval-policy` · `accounting:ap_approval_policy:manage` | clerk limit, automatic limit, history; `defaultTerms` (`AP_DEFAULT_TERMS`, AW33; S13, louisburroughs/durion-positivity-backend#2510): values and audit in §4.2 |
-| Cash safety cushion | `GET/PUT /v1/accounting/configuration/cash-safety-cushion` · permission pending §12 OI-6 | AW34; body `{amount \| null, currencyCode, justification, requestId}`; validation, codes and audit in §4.2; event `ACCOUNTING_CONFIGURATION_CASH_SAFETY_CUSHION_SET` |
+| Cash safety cushion | `GET/PUT /v1/accounting/configuration/cash-safety-cushion` · PUT `accounting:period:hard_lock` (OI-6) | AW34; body `{amount \| null, currencyCode, justification, requestId}`; validation, codes and audit in §4.2; event `ACCOUNTING_CONFIGURATION_CASH_SAFETY_CUSHION_SET` |
 | Pay guard | EXISTING `POST /v1/accounting/ap/payments` | 403 `AP_PAYMENT_SELF_APPROVED_BILL` |
 | Resolve match exception | EXISTING `POST /v1/accounting/vendor-bills/{billId}/resolve-exception` and `POST …/match-candidates/{candidateId}/select` | `operatorId` removed from both requests; `ACCEPT` subject to the limit; candidate selection moves the bill to `AWAITING_APPROVAL` |
 | Undeposited sessions | `GET /v1/accounting/undeposited-sessions` · `accounting:deposit:create` | from `RegisterSessionClosedV1` |
@@ -1009,7 +1010,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW31 | Sign-offs given: Order (customer required at checkout, R11.2 reversed; cart-customer change and tendered amount; fixed drawer reasons, allowed / amount limits, manager approval; opening float from configuration), Security (roles `ACCOUNTING_CLERK` and `GENERAL_MANAGER`; `accounting:ap:approve` / `accounting:ap:reject` reinstated; manager approval at a shared register by a **step-up endpoint** returning a single-use approval token, no second sign-in), CRM (CASH house account), Invoicing & Payments (missing customer refused; `PaymentSettledV1.partyId` required, schema 2), Inventory (only mapped, active vendors are purchase candidates; admin maintains the mapping) | Platform owner | §4.4, §4.6, §7.2, §7.3 |
 | AW32 | A register's float moves to another location by one relocation command (reason `ENTERED_IN_ERROR` \| `MOVED`): a 1080 reclass between location dimensions for the current amount; posted lines never edited; `accounting:float:manage` at both locations | Accounting Domain Agent (2026-10-07). Open sessions: Order (OI-15) | §4.6, §7.1, §7.2; S38 |
 | AW33 | `AP_DEFAULT_TERMS` is written through the AP approval policy, audited; estimated due dates take terms from the purchase order, then the vendor's default, then `AP_DEFAULT_TERMS` (amends AW11) | Accounting Domain Agent (2026-10-07) | §4.2, §7.1; louisburroughs/durion-positivity-backend#2510, #2515 |
-| AW34 | Safety cushion: one tenant-wide threshold in functional currency for the outlook only, never posted; a warning when the projected low point is below it; written through its configuration endpoint | Accounting Domain Agent (2026-10-07). Writer and notification: platform owner (OI-6) | §4.2, §7.1; louisburroughs/durion-positivity-backend#2515, #2574 |
+| AW34 | Safety cushion: one tenant-wide threshold in functional currency for the outlook only, never posted; a warning when the projected low point is below it; written through its configuration endpoint | Accounting Domain Agent (2026-10-07); writer and warning-only: platform owner (OI-6) | §4.2, §7.1; louisburroughs/durion-positivity-backend#2515, #2574 |
 | AW35 | Opening bank balances: once per bank account, dated on the cutover date, the bank statement balance plus one bank line per outstanding item against 3900; the first reconciled statement starts the next day and registers the items as outstanding | Accounting Domain Agent (2026-10-07; OI-10) | §4.6, §7.1; S39 |
 
 ---
@@ -1090,7 +1091,7 @@ Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 ·
 | OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent — **blocks Phase 3** (louisburroughs/durion#551) |
 | OI-4 | Canadian accountant confirmation of the 50% meals rule, the $100/$500 thresholds and PST treatment | Platform owner (Phase 6 questions: louisburroughs/durion#553) |
 | OI-5 | **Signed off 2026-10-05 (AW31)** by the platform owner for Order, CRM, Invoicing & Payments, Security and Inventory. Still open: reassignment of a finalized invoice to another customer (Invoicing & Payments) | Platform owner |
-| OI-6 | **Partly resolved 2026-10-07 (AW34):** the setting name `CASH_SAFETY_CUSHION`, its meaning, unit and write contract. Still open: which permission writes it (Accounting recommends the `accounting:ap_approval_policy:manage` holders) and whether a notification is sent beyond the home-pane warning (louisburroughs/durion-positivity-backend#2574) | Platform owner |
+| OI-6 | **Resolved 2026-10-07 (AW34):** `CASH_SAFETY_CUSHION`'s meaning, unit and write contract (Accounting); the PUT is CONTROLLER-level, gated by `accounting:period:hard_lock` like the rest of `/v1/accounting/configuration`; the warning is the only signal, no notification (platform owner, louisburroughs/durion-positivity-backend#2574) | Platform owner |
 | OI-7 | True 2-way / 3-way purchase-order matching (the "Ordered" column) | Accounting + Order |
 | OI-8 | Intake path for unidentified customer receipts (bank credit or mailed check) and the `assign-customer` endpoint | Accounting Domain Agent |
 | OI-9 | Treatment of FET, tire/environmental fees and core charges on vendor bills | Accounting Domain Agent (must ask the owner) |
