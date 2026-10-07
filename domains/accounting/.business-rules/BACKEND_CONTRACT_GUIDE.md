@@ -672,7 +672,16 @@ Headers and auth notes:
 > the same transaction, and the CASH walk-in account is refused (`CASH_CUSTOMER_CREDIT_NOT_ALLOWED`). An ArchUnit
 > rule in pos-accounting keeps that the only place a customer credit is created.
 
-#### Behavioral Assertions
+#### Current contract
+
+- Payments are applied with `applyPayment` (`PaymentApplicationServiceImpl`). An overpayment becomes a customer
+  credit posted Dr 1090 / Cr 2300 in the same transaction. The CASH walk-in account never receives one
+  (422 `CASH_CUSTOMER_CREDIT_NOT_ALLOWED`).
+
+#### Historical assertions (retired with #2554; not a current contract)
+
+These assertions described the removed `PaymentOutcomeProcessingServiceImpl`. They are kept for history only.
+Do not implement or test against them unless a new story reinstates them.
 
 - Payment outcomes must map deterministically to canonical invoice payment statuses:
   `Paid`, `PartiallyPaid`, `Unpaid`, `Failed`, `Chargeback` using minor-unit arithmetic.
