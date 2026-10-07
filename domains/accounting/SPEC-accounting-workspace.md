@@ -251,11 +251,14 @@ GENERAL_MANAGER do (AW7).
 void, `ACCEPT`, approve-without-match and any self-approval exception; decisions emit `ACCOUNTING_VENDOR_BILL_APPROVE` / `_REJECT`; a limit change records old
 and new values, actor and justification.
 
-**Posting (AW37–AW43, louisburroughs/durion#551).** Accounts are never hard-coded: every leg resolves through a posting category and mapping key (AW40, §7.1).
+**Posting (AW37–AW43, louisburroughs/durion#551).** Accounts are never hard-coded: every leg resolves through a posting category and mapping key (AW40,
+§7.1), except an AP payment's bank credit, which is the payment's selected `BANK_CASH` account and never a mapping key (S42,
+louisburroughs/durion-positivity-backend#2603).
 
 - **One trigger (AW37).** A vendor bill or vendor credit note posts once, at approval — a person's approve, `ACCEPT`, or the system's automatic approval —
   whatever its channel. Nothing posts at create, match, candidate selection, submit, due-date change, reject, or a void before approval; goods-receipt bills
-  stop posting at creation. Approval and posting share one transaction: a bill is approved only if it posted.
+  stop posting at creation. Approval and posting share one transaction: a bill is approved only if it posted. S12 removes the `VendorBillGLPostingEvent`
+  publisher and its handler, and closes every existing `VENDOR_BILL_GL_POSTING` accounting event as obsolete and non-retryable, so none can post later.
 - **Receipts accrue first (AW38).** A delivery received into stock posts from pos-inventory's `goodsreceipt.recorded`, dated `occurredAt`: Dr 1300 at
   inventory's cost basis / Cr **2100 Goods Received Not Yet Billed** at the accrued value / Dr or Cr **5050 Purchase Price Differences** for any difference
   (S41). A bill never debits 1300 (ADR-0048 §1). A rejected or voided bill never reverses a receipt's accrual; only a new inventory fact does (OI-20).
@@ -282,7 +285,8 @@ and new values, actor and justification.
   `accounting:ap:reject`, the approval tier and a reason of at least 10 characters. It posts the mirror through the journal-entry reversal, dated on the void
   date in that date's period, never back in the original period; 2100 is accrued again.
 - **AP payments (AW41).** Dr 2000 gross / Dr 6030 fee / Cr the chosen `BANK_CASH` account (gross + fee), dated the day the payment executed;
-  `bankAccountId` is on the pay command, defaulted when only one account exists. Method, currency and period are checked before the gateway is called;
+  `bankAccountId` is on the pay command, defaulted only when exactly one active functional-currency `BANK_CASH` account exists (inactive and foreign-currency
+  accounts are ignored; with none or several eligible, it is required). Method, currency and period are checked before the gateway is called;
   `CREDIT_CARD` and `OTHER` → 422 `AP_PAYMENT_METHOD_NOT_SUPPORTED` (OI-17). The outbox then posts; a later refusal leaves the payment `GL_POST_FAILED`, posted
   again on the same date (S42). Allocations post nothing.
 - **Reconciliation.** 2000 (credit) = Σ open amounts of `APPROVED` bills and credit notes − Σ unapplied AP payments, cash on delivery included; unapproved
@@ -466,9 +470,11 @@ Applies only to CAD tenants whose GST/HST registration is recorded; the backend 
 - Evidence: supplier name and receipt reference always (photo recommended); from **$100** the supplier's GST/HST registration number is required, else the tax
   goes to expense (format check only). Thresholds are jurisdiction settings.
 - Category settings `taxRecoverable` and `recoverablePercent`: 100% for all defaults except **Staff meals 50%**; new categories default to not recoverable.
-- Vendor bills (CAD): split as the vendor stated — Dr inventory/expense (net + PST) / Dr 1250 / Dr 1260 / Cr AP (gross); never recalculated; the approver
-  confirms; a vendor credit note reverses the recovery; recoverable tax stays out of inventory cost (ADR-0048); the EDI single tax total must be split by tax
-  type (pos-supplier codec). US tenants keep booking the gross (correct for US).
+- Vendor bills (CAD): split as the vendor stated and posted by AW39's classes (§4.3 "Posting") — each line's net + PST to its class (`RECEIPT_MATCHED` and
+  `GOODS` clear 2100, with any price difference and the PST of goods in 5050; `EXPENSE` lines debit their `EXPENSE_<CODE>` key) / Dr 1250 recoverable GST/HST
+  / Dr 1260 recoverable QST / Cr AP (gross); a bill never debits 1300 (AW38); never recalculated; the approver confirms; a vendor credit note reverses the
+  recovery; recoverable tax stays out of inventory cost (ADR-0048); the EDI single tax total must be split by tax type (pos-supplier codec); delivered by S32.
+  US tenants keep booking the gross as cost (AW39).
 - **Before the first CAD tenant:** pos-tax Canadian coverage and the PC-15 readiness sign-off; split output tax payables (proposed 2210 GST/HST, 2220 QST,
   2230 PST) using `LineItemTax.jurisdictions[]`; return filing frequency and ITC claim time limit; CAD 0.05 rounding; the vendor-bill tax gap; fr-CA.
   **A Canadian accountant must confirm** the 50% meals rule, the $100/$500 evidence thresholds and PST non-recoverability (rules taken from Canadian tax law,
@@ -767,7 +773,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Vendor-bill approval | `POST /v1/accounting/vendor-bills/{id}/submit-for-approval` · `…/approve` · `…/reject` (same base) · `accounting:ap:approve` / `…:approve_over_limit`; reject `accounting:ap:reject` | §4.3; 403 `AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`; 422 `AP_BILL_NOT_APPROVABLE` (e.g. `CURRENCY_HOLD`) |
 | Real due date during review | `PUT /v1/accounting/vendor-bills/{id}/due-date` · `accounting:ap:approve` | audited; replaces the estimate |
 | System approver | recorded on automatic approvals | identity and the automatic limit in force |
-| Bill GL posting at approval | Inside the approve, `ACCEPT` and system-approval transaction; category `VENDOR_BILL` (AW37–AW40; S12, louisburroughs/durion-positivity-backend#2509) | §4.3 "Posting"; a refusal rolls back (422 `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; mapping: #2601); the bill read serves `postingDate`, `postingDateRule` and the entry's reference; `VENDOR_BILL_GL_POSTING` retired |
+| Bill GL posting at approval | In the approve, `ACCEPT` and system-approval transaction; category `VENDOR_BILL` (AW37–AW40; S12, backend #2509) | §4.3 "Posting"; a refusal rolls back (422 `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; mapping: #2601); the read serves `postingDate`, `postingDateRule`, the entry's reference; old `VENDOR_BILL_GL_POSTING` events closed, never retried |
 | Void an approved bill | `POST /v1/accounting/vendor-bills/{id}/void` · `accounting:ap:reject` and the approval tier | AW42; nothing allocated, else 409 `AP_BILL_NOT_VOIDABLE`; reason ≥ 10 characters; mirror entry dated on the void date |
 | Goods-receipt accrual | Listener on `goodsreceipt.recorded` (S41, louisburroughs/durion-positivity-backend#2602) | AW38; Dr 1300 / Cr 2100 / Dr or Cr 5050, dated `occurredAt`; key `GOODS_RECEIPT_ACCRUAL:<receiptId>`; a missing or foreign currency is parked |
 | AP payment posting | EXISTING `POST /v1/accounting/ap/payments` gains `bankAccountId`, loses `netAmount`; `POST …/{paymentId}/gl-posting-retry` · `accounting:je:post` (S42, louisburroughs/durion-positivity-backend#2603) | AW41; category `AP_PAYMENT`; refused before the gateway: 422 `AP_PAYMENT_METHOD_NOT_SUPPORTED`, `CURRENCY_NOT_SUPPORTED`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED` |
@@ -1069,7 +1075,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW37 | A vendor bill or credit note posts once, at approval (a person's, `ACCEPT` or the system's), whatever its channel; nothing posts before; goods-receipt bills stop posting at creation; approval and posting share one transaction. 2000 = approved open amounts − unapplied AP payments | Accounting Domain Agent (2026-10-07; OI-2, louisburroughs/durion#551) | §4.3; S12, S13 |
 | AW38 | A goods receipt posts its own accrual from `goodsreceipt.recorded`: Dr 1300 at inventory's cost / Cr new 2100 Goods Received Not Yet Billed / Dr or Cr new 5050 Purchase Price Differences; a bill never debits 1300 and a bill decision never reverses a receipt | Accounting Domain Agent (2026-10-07; OI-2) | §4.3, §7.1, §7.3; S41 |
 | AW39 | Bill lines by class: `RECEIPT_MATCHED` clears 2100 at receipt price with the difference in 5050; `GOODS` debits 2100; `EXPENSE` a `VENDOR_BILL` `EXPENSE_<CODE>` key; freight new 5060; US tax as stated into the cost; credit notes mirror by class | Accounting Domain Agent (2026-10-07; OI-2). US purchase tax: platform owner (OI-19) | §4.3; S12, S24, S25, S32 |
-| AW40 | Bills, receipts and AP payments post through categories `VENDOR_BILL`, `GOODS_RECEIPT`, `AP_PAYMENT` with seeded keys and mappings; a tenant remaps by effective-dated GL mapping; no posting-rule versions; `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` retired | Accounting Domain Agent (2026-10-07; OI-3) | §7.1; S12, S37, S41, S42 |
+| AW40 | Bills, receipts and AP payments post through categories `VENDOR_BILL`, `GOODS_RECEIPT`, `AP_PAYMENT` with seeded keys and mappings, except an AP payment's bank credit (its selected `BANK_CASH` account); tenants remap by effective-dated GL mapping; no rule versions; both old event types retired, old events closed | Accounting Domain Agent (2026-10-07; OI-3) | §7.1; S12, S37, S41, S42 |
 | AW41 | AP payment: Dr 2000 / Dr 6030 fee / Cr the chosen `BANK_CASH` account, on the execution date; checks before the gateway; `CREDIT_CARD` and `OTHER` refused (OI-17); allocations post nothing; cash on delivery credits 1095 and its `CASH` payment posts nothing more | Accounting Domain Agent (2026-10-07; OI-3) | §4.3, §4.6, §7.1; S17, S42 |
 | AW42 | A bill posts on its bill date when that period is open, else on the approval date; a period or mapping refusal rolls the approval back; an approved bill with nothing allocated may be voided, its mirror dated on the void date, never in the original period | Accounting Domain Agent (2026-10-07; OI-2). Refusal status: Chief Architect (#2601) | §4.3, §7.1; S12, S13, S14 |
 | AW43 | Foreign-currency bills (`CURRENCY_HOLD`) never post; a foreign-currency AP payment is refused and a receipt fact without a functional currency is parked; never at par | Accounting Domain Agent (2026-10-07), applying ADR-0067 PC-9 (a), PC-13 (a) | §4.3; S41, S42 |
