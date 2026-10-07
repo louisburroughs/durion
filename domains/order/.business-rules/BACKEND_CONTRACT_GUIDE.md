@@ -9,7 +9,7 @@ guide_path: domains/order/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-order/openapi.yaml
 openapi_commit: 1aa6083
 last_verified_utc: 2026-09-06T00:00:00Z
-last_updated: 2026-09-06
+last_updated: 2026-10-07
 api_reference_generated: domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -60,6 +60,7 @@ Frontend developer workflow:
 | Capability | Parent Issue | Contract Status | Primary Scope |
 | --- | --- | --- | --- |
 | CAP-246 | [#246](https://github.com/louisburroughs/durion/issues/246) | draft | POS Sales Order & Cart (Quote-to-Cash Entry Point) |
+| CAP-550 | [#550](https://github.com/louisburroughs/durion/issues/550) | draft | Register session facts (S40; `order.session.opened`, `order.session.closed` v2) |
 
 ## Frontend API Lookup
 
@@ -245,13 +246,43 @@ Gateway base URL: `http://localhost:8080` · Service base URL: `http://localhost
 - Integration failures must be observable through deterministic status and error reporting.
 - Any contract-affecting change must update OpenAPI and regenerate API references.
 
+### Register session facts (CAP:550 S40)
+
+pos-order publishes both facts of a register session on `order.events.v1` (`DomainTopics.events("order")`) through its
+transactional outbox ([durion-positivity-backend#2578](https://github.com/louisburroughs/durion-positivity-backend/issues/2578)).
+Both are keyed on the session (`aggregateId = sessionId`) with `aggregateVersion` = the session's version, so a session's two
+facts share a partition and arrive in order.
+
+| eventType | Payload record | Payload | Queued |
+| --- | --- | --- | --- |
+| `order.session.opened` | `RegisterSessionOpenedV1` v1 | `sessionId`, `terminalId`, `locationId` (nullable), `openedAt` | In the open transaction; at each start |
+| `order.session.closed` | `RegisterSessionClosedV1` v2 | Reconciliation figures, tender totals, every cash movement | In the confirm-close transaction |
+
+Contract consumers may rely on:
+
+- At most one active (OPEN or CLOSING) session per (tenant, `terminalId`).
+- A session is active from its `order.session.opened` until its `order.session.closed`.
+- `locationId` never changes during a session.
+- Only the most recently opened session of a terminal can be active.
+
+Rules:
+
+- A refused open queues nothing: 409 when the terminal already has an active session, 422 `REGISTER_FLOAT_LOCATION_MISMATCH`
+  when the register's float is held at another location, 403 `LOCATION_SCOPE_DENIED`.
+- Start republish: pos-order re-emits `order.session.opened` for every OPEN or CLOSING session of every tenant (ADR-0062
+  `TenantIterator`, one transaction per tenant) at the session's current version, and never for a CLOSED session (ADR-0044 §4
+  backfill). `pos.order.session.bootstrap-republish.enabled` defaults to `true` (republish on); set it to `false` to turn it off.
+- Consumer: pos-accounting keeps the `ext_order_register_session` replica and refuses to relocate a register (`registerId` =
+  `terminalId`, AW31) while its latest-opened session is active (AW36, OI-15; ADR-0044 R1: no synchronous call to pos-order). It
+  applies equal versions, and a closed fact always closes the session whatever the order of arrival.
+
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-order/openapi.yaml`
 - OpenAPI source revision: `1aa6083` (price-override endpoints; transmission-events/supplier-availability added #1637/#1638;
   cart and cancel endpoints pending issues #21 and #19)
 - Last verified UTC: `2026-09-06T00:00:00Z`
-- Last capability update: CAP-246 (stories #19, #20, #21)
+- Last capability update: CAP-550 (S40, louisburroughs/durion-positivity-backend#2578; 2026-10-07)
 - Generated API reference: `domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
