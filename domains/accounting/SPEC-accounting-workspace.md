@@ -23,7 +23,8 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > of supplier-invoice intake (OI-1) was ruled jointly by the Accounting, Positivity (Integrations) and Invoicing & Payments Domain Agents on 2026-10-05, in two
 > rounds, at the platform owner's request (AW22–AW29); the platform owner then placed the vendor master in pos-supplier (AW23). On 2026-10-07 the Accounting
 > Domain Agent ruled AW32–AW35 at the platform owner's request: moving a register's float, AP default terms, the safety cushion and opening bank balances;
-> AW36 records the platform owner's and Order's no-move-during-an-open-session rule.
+> AW36 records the platform owner's and Order's no-move-during-an-open-session rule. Also on 2026-10-07, at the platform owner's request, the Accounting
+> Domain Agent ruled AW37–AW43 on when and how vendor bills and AP payments post (OI-2, OI-3; louisburroughs/durion#551).
 > Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
@@ -222,7 +223,7 @@ A projection, labelled as such, never posted.
 
 Transitions: `PENDING_RECEIPT_MATCH | MATCH_EXCEPTION → AWAITING_APPROVAL → APPROVED | REJECTED`. "Send for approval without a delivery match" is allowed with
 a justification (service bills, shop supplies, EDI bills that will never have a receipt). Selecting a match candidate is matching only; the bill then moves to
-`AWAITING_APPROVAL`.
+`AWAITING_APPROVAL`. An `APPROVED` bill is never rejected; while nothing has been allocated to it, it may be voided (`APPROVED → VOIDED`, AW42).
 
 **Limits:**
 
@@ -249,6 +250,49 @@ GENERAL_MANAGER do (AW7).
 **Audit:** every decision records actor, tier used, the limit at that moment, bill total, match score and evidence; justification is mandatory for reject,
 void, `ACCEPT`, approve-without-match and any self-approval exception; decisions emit `ACCOUNTING_VENDOR_BILL_APPROVE` / `_REJECT`; a limit change records old
 and new values, actor and justification.
+
+**Posting (AW37–AW43, louisburroughs/durion#551).** Accounts are never hard-coded: every leg resolves through a posting category and mapping key (AW40,
+§7.1), except an AP payment's bank credit, which is the payment's selected `BANK_CASH` account and never a mapping key (S42,
+louisburroughs/durion-positivity-backend#2603).
+
+- **One trigger (AW37).** A vendor bill or vendor credit note posts once, at approval — a person's approve, `ACCEPT`, or the system's automatic approval —
+  whatever its channel. Nothing posts at create, match, candidate selection, submit, due-date change, reject, or a void before approval; goods-receipt bills
+  stop posting at creation. Approval and posting share one transaction: a bill is approved only if it posted. S12 removes the `VendorBillGLPostingEvent`
+  publisher and its handler, and closes every existing `VENDOR_BILL_GL_POSTING` accounting event as obsolete and non-retryable, so none can post later.
+- **Receipts accrue first (AW38).** A delivery received into stock posts from pos-inventory's `goodsreceipt.recorded`, dated `occurredAt`: Dr 1300 at
+  inventory's cost basis / Cr **2100 Goods Received Not Yet Billed** at the accrued value / Dr or Cr **5050 Purchase Price Differences** for any difference
+  (S41). A bill never debits 1300 (ADR-0048 §1). A rejected or voided bill never reverses a receipt's accrual; only a new inventory fact does (OI-20).
+- **Bill lines at approval (AW39).** Each line, or the whole bill when its lines aren't stored, takes one class:
+
+  | Class | Debit |
+  | --- | --- |
+  | `RECEIPT_MATCHED` — a stocked line matched to its receipt | 2100 = billed quantity × received unit price, and 5050 = billed quantity × (billed − received price), debit or credit; a quantity difference stays open in 2100 |
+  | `GOODS` — stock not matched to a receipt (phase 3 EDI bills, header only) | 2100 at the billed net |
+  | `EXPENSE` — services, supplies, lines with `isInventoryItem = false` | The `VENDOR_BILL` key `EXPENSE_<CODE>` (the nine AW18 codes on their AW30 accounts): the vendor's default (`ap_vendor_settings`), else the approver's choice, else 422 `AP_BILL_UNCLASSIFIED` |
+  | Freight stated separately | **5060 Freight on Purchases** (outbound postage stays 6380) |
+  | Tax as stated, never recalculated | US: part of the cost — into the line's expense, or 5050 for goods; never 2200, 1300 or 2100. Header-only tax on a mixed bill is prorated by line net, the residual cent on the largest line. CAD: AW20 (S32) |
+
+  The credit is Cr 2000 for the billed gross. A credit note posts the mirror, Dr 2000 / Cr by class: `EXPENSE` its key, `PRICE_ALLOWANCE` 5050,
+  `GOODS_RETURNED` 2100 once Inventory publishes a costed return (OI-20; until then a return uses `PRICE_ALLOWANCE`). Use tax and tax on resale goods: OI-19.
+- **Matching keeps what was billed.** `/match` and candidate selection set the bill's total to the vendor's billed total and keep the billed quantity and price
+  of each line; EDI bills keep the stated net and tax (none stated: net = gross, tax 0).
+- **Dates and refusals (AW42).** A bill posts on its bill date when that date is on or before the approval date and its period is OPEN, otherwise on the
+  approval date (tenant calendar); the read serves `postingDate` and `postingDateRule`. The approval date's period CLOSED → 422 `PERIOD_CLOSED`, unless the
+  approver holds `accounting:period:override` and gives an `overrideJustification`; HARD_LOCKED → 422 `PERIOD_HARD_LOCKED`; a missing or inactive mapping is
+  refused as well (its status: louisburroughs/durion-positivity-backend#2601). A refusal rolls the approval back: the bill keeps its status, with no approval
+  field and no entry. A refused automatic approval leaves the bill `AWAITING_APPROVAL`, audited with the reason.
+- **Void after approval (AW42).** Only while nothing is allocated (else 409 `AP_BILL_NOT_VOIDABLE`; a vendor credit note corrects it, AW27), with
+  `accounting:ap:reject`, the approval tier and a reason of at least 10 characters. It posts the mirror through the journal-entry reversal, dated on the void
+  date in that date's period, never back in the original period; 2100 is accrued again.
+- **AP payments (AW41).** Dr 2000 gross / Dr 6030 fee / Cr the chosen `BANK_CASH` account (gross + fee), dated the day the payment executed;
+  `bankAccountId` is on the pay command, defaulted only when exactly one active functional-currency `BANK_CASH` account exists (inactive and foreign-currency
+  accounts are ignored; with none or several eligible, it is required). Method, currency and period are checked before the gateway is called;
+  `CREDIT_CARD` and `OTHER` → 422 `AP_PAYMENT_METHOD_NOT_SUPPORTED` (OI-17). The outbox then posts; a later refusal leaves the payment `GL_POST_FAILED`, posted
+  again on the same date (S42). Allocations post nothing.
+- **Reconciliation.** 2000 (credit) = Σ open amounts of `APPROVED` bills and credit notes − Σ unapplied AP payments, cash on delivery included; unapproved
+  bills are in no account. 2100 holds what was delivered and not yet billed.
+- **Currency (AW43).** `CURRENCY_HOLD` bills never post; an AP payment or receipt fact in another currency is refused or parked, never booked at par (ADR-0067
+  PC-9 (a), PC-13 (a)).
 
 ### 4.4 Customer payments and the CASH customer (AW12–AW14)
 
@@ -307,6 +351,8 @@ resolve through posting category `REGISTER_CASH_MOVEMENT` at session close.
 | `FLOAT_INCREASE` / `FLOAT_DECREASE` | IN / OUT | none at close; balanced by an accounting float change | Always needs a manager; must match a recorded float change |
 
 The bank drop equals counted cash minus the float. Petty expenses, COD payouts and over/short leave 1095 holding the session's net, which the deposit clears.
+Cash on delivery credits 1095, never 1080, whose fixed float moves only through Change float (AW16, AW41). The close entry Dr 2000 / Cr 1095 is the `CASH` AP
+payment's only posting: the payment posts nothing more, and allocating it to the vendor's approved bill posts nothing.
 The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per-movement fact). `clerkId` comes from the security context (ADR-0018).
 
 **Drawer limits** (owner ruling: configurable "allowed / amount"; Order owns the settings, AW19):
@@ -424,9 +470,11 @@ Applies only to CAD tenants whose GST/HST registration is recorded; the backend 
 - Evidence: supplier name and receipt reference always (photo recommended); from **$100** the supplier's GST/HST registration number is required, else the tax
   goes to expense (format check only). Thresholds are jurisdiction settings.
 - Category settings `taxRecoverable` and `recoverablePercent`: 100% for all defaults except **Staff meals 50%**; new categories default to not recoverable.
-- Vendor bills (CAD): split as the vendor stated — Dr inventory/expense (net + PST) / Dr 1250 / Dr 1260 / Cr AP (gross); never recalculated; the approver
-  confirms; a vendor credit note reverses the recovery; recoverable tax stays out of inventory cost (ADR-0048); the EDI single tax total must be split by tax
-  type (pos-supplier codec). US tenants keep booking the gross (correct for US).
+- Vendor bills (CAD): split as the vendor stated and posted by AW39's classes (§4.3 "Posting") — each line's net + PST to its class (`RECEIPT_MATCHED` and
+  `GOODS` clear 2100, with any price difference and the PST of goods in 5050; `EXPENSE` lines debit their `EXPENSE_<CODE>` key) / Dr 1250 recoverable GST/HST
+  / Dr 1260 recoverable QST / Cr AP (gross); a bill never debits 1300 (AW38); never recalculated; the approver confirms; a vendor credit note reverses the
+  recovery; recoverable tax stays out of inventory cost (ADR-0048); the EDI single tax total must be split by tax type (pos-supplier codec); delivered by S32.
+  US tenants keep booking the gross as cost (AW39).
 - **Before the first CAD tenant:** pos-tax Canadian coverage and the PC-15 readiness sign-off; split output tax payables (proposed 2210 GST/HST, 2220 QST,
   2230 PST) using `LineItemTax.jurisdictions[]`; return filing frequency and ITC claim time limit; CAD 0.05 rounding; the vendor-bill tax gap; fr-CA.
   **A Canadian accountant must confirm** the 50% meals rule, the $100/$500 evidence thresholds and PST non-recoverability (rules taken from Canadian tax law,
@@ -725,7 +773,10 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Vendor-bill approval | `POST /v1/accounting/vendor-bills/{id}/submit-for-approval` · `…/approve` · `…/reject` (same base) · `accounting:ap:approve` / `…:approve_over_limit`; reject `accounting:ap:reject` | §4.3; 403 `AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`; 422 `AP_BILL_NOT_APPROVABLE` (e.g. `CURRENCY_HOLD`) |
 | Real due date during review | `PUT /v1/accounting/vendor-bills/{id}/due-date` · `accounting:ap:approve` | audited; replaces the estimate |
 | System approver | recorded on automatic approvals | identity and the automatic limit in force |
-| Bill GL posting at approval | depends on OI-2 / OI-3 | EDI bills |
+| Bill GL posting at approval | In the approve, `ACCEPT` and system-approval transaction; category `VENDOR_BILL` (AW37–AW40; S12, backend #2509) | §4.3 "Posting"; a refusal rolls back (422 `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; mapping: #2601); the read serves `postingDate`, `postingDateRule`, the entry's reference; old `VENDOR_BILL_GL_POSTING` events closed, never retried |
+| Void an approved bill | `POST /v1/accounting/vendor-bills/{id}/void` · `accounting:ap:reject` and the approval tier | AW42; nothing allocated, else 409 `AP_BILL_NOT_VOIDABLE`; reason ≥ 10 characters; mirror entry dated on the void date |
+| Goods-receipt accrual | Listener on `goodsreceipt.recorded` (S41, louisburroughs/durion-positivity-backend#2602) | AW38; Dr 1300 / Cr 2100 / Dr or Cr 5050, dated `occurredAt`; key `GOODS_RECEIPT_ACCRUAL:<receiptId>`; a missing or foreign currency is parked |
+| AP payment posting | EXISTING `POST /v1/accounting/ap/payments` gains `bankAccountId`, loses `netAmount`; `POST …/{paymentId}/gl-posting-retry` · `accounting:je:post` (S42, louisburroughs/durion-positivity-backend#2603) | AW41; category `AP_PAYMENT`; refused before the gateway: 422 `AP_PAYMENT_METHOD_NOT_SUPPORTED`, `CURRENCY_NOT_SUPPORTED`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED` |
 | AP approval policy | `GET/PUT /v1/accounting/ap-approval-policy` · `accounting:ap_approval_policy:manage` | clerk limit, automatic limit, history; `defaultTerms` (`AP_DEFAULT_TERMS`, AW33; S13, louisburroughs/durion-positivity-backend#2510): values and audit in §4.2 |
 | Cash safety cushion | `GET/PUT /v1/accounting/configuration/cash-safety-cushion` · PUT `accounting:period:hard_lock` (OI-6) | AW34; body `{amount \| null, currencyCode, justification, requestId}`; validation, codes and audit in §4.2; event `ACCOUNTING_CONFIGURATION_CASH_SAFETY_CUSHION_SET` |
 | Pay guard | EXISTING `POST /v1/accounting/ap/payments` | 403 `AP_PAYMENT_SELF_APPROVED_BILL` |
@@ -739,10 +790,12 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Petty-expense categories | EXISTING mapping-key and gl-mapping endpoints under `REGISTER_CASH_MOVEMENT` | publishes `accounting.petty-expense-category.changed` |
 | Estimated due dates | in cash outlook and aged AP | never stored; terms from the purchase order, then the vendor's default, then `AP_DEFAULT_TERMS`, named by `termsSource` (AW33; S19, louisburroughs/durion-positivity-backend#2515) |
 | Seed | accounts 1080, 3000, 3900, 6295, 6375, 6380 (AW30); renumbering (§4.6); retread add-on per tenant; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`, `OPENING_BALANCE`; settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION` | repeatable seeds |
-| Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path | DB check constraint |
+| Seed (AW38–AW41) | Accounts 2100, 5050, 5060, with statement lines `BS_DELIVERIES_NOT_BILLED` ("Deliveries not yet billed") and `IS_COST_OF_PARTS_SOLD`; categories `GOODS_RECEIPT`, `VENDOR_BILL`, `AP_PAYMENT` with their keys and mappings (AW40); no posting-rule versions | Repeatable seed; S37 provisions every tenant |
+| Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path; `APPROVED → VOIDED` (AW42) | DB check constraint |
 | Permissions | register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject`; new `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage` | registry + security catalog |
 | Events | `ACCOUNTING_PAYMENT_CUSTOMER_ASSIGN`, `ACCOUNTING_VENDOR_BILL_SUBMIT`, `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed`, `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
 | Events (AW32–AW35) | `accounting.float.changed` gains kind `RELOCATION` and a nullable `previousLocationId`, additive with a `schemaVersion` bump (ADR-0044 §3; S38); `ACCOUNTING_REGISTER_FLOAT_RELOCATE`, `ACCOUNTING_BANK_OPENING_BALANCE_ESTABLISH`, `ACCOUNTING_CONFIGURATION_CASH_SAFETY_CUSHION_SET` | threshold `write` |
+| Events (AW42) | `ACCOUNTING_VENDOR_BILL_VOID` (void of an approved bill), `ACCOUNTING_AP_PAYMENT_GL_POSTING_RETRY` | thresholds `approval` / `write` |
 | CAD | `inputTaxRecoveryEnabled`; 1250/1260 postings; vendor-bill tax split | §4.7 |
 
 ### 7.2 `pos-order`
@@ -774,6 +827,9 @@ location, never the float row's.
   re-send (new: pos-supplier publishes no vendor manifest today). `SUPPORT` keeps `supplier:vendor:read`, read-only (§12 OI-16).
 - `pos-order`: an `ext_supplier_vendor` copy; a new purchase order's vendor must exist and be active in it (G15). `pos-inventory` takes the vendor id through its
   existing purchase-order copy and keeps its own vendor copy, which its purchase suggestions need to name a pos-supplier vendor.
+- `pos-inventory` (AW38, OI-20; louisburroughs/durion-positivity-backend#2598): additive v1 fields on `goodsreceipt.recorded` — `currencyCode`, and per line
+  `productId` and `inventoryValueMinor` (the value inventory booked on its `GOODS_RECEIPT` ledger row) — and a costed return-to-vendor fact. pos-accounting
+  consumes the receipt fact (S41); until the fields exist, a receipt without a currency is parked. **Requires Inventory sign-off.**
 
 ### 7.4 Bill intake (AW22–AW29)
 
@@ -1016,6 +1072,13 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW34 | Safety cushion: one tenant-wide threshold in functional currency for the outlook only, never posted; a warning when the projected low point is below it; written through its configuration endpoint | Accounting Domain Agent (2026-10-07); writer and warning-only: platform owner (OI-6) | §4.2, §7.1; louisburroughs/durion-positivity-backend#2515, #2574 |
 | AW35 | Opening bank balances: once per bank account, dated on the cutover date, the bank statement balance plus one bank line per outstanding item against 3900; the first reconciled statement starts the next day and registers the items as outstanding | Accounting Domain Agent (2026-10-07; OI-10) | §4.6, §7.1; S39 |
 | AW36 | No register move while its session is OPEN or CLOSING. pos-order publishes `order.session.opened`; pos-accounting refuses a relocation from a session replica (422 `FLOAT_REGISTER_SESSION_OPEN`); pos-order refuses an open at a location other than the float's (422 `REGISTER_FLOAT_LOCATION_MISMATCH`) | Platform owner; Order Domain Agent (2026-10-07; OI-15) | §4.6; S16, S38, S40 |
+| AW37 | A vendor bill or credit note posts once, at approval (a person's, `ACCEPT` or the system's), whatever its channel; nothing posts before; goods-receipt bills stop posting at creation; approval and posting share one transaction. 2000 = approved open amounts − unapplied AP payments | Accounting Domain Agent (2026-10-07; OI-2, louisburroughs/durion#551) | §4.3; S12, S13 |
+| AW38 | A goods receipt posts its own accrual from `goodsreceipt.recorded`: Dr 1300 at inventory's cost / Cr new 2100 Goods Received Not Yet Billed / Dr or Cr new 5050 Purchase Price Differences; a bill never debits 1300 and a bill decision never reverses a receipt | Accounting Domain Agent (2026-10-07; OI-2) | §4.3, §7.1, §7.3; S41 |
+| AW39 | Bill lines by class: `RECEIPT_MATCHED` clears 2100 at receipt price with the difference in 5050; `GOODS` debits 2100; `EXPENSE` a `VENDOR_BILL` `EXPENSE_<CODE>` key; freight new 5060; US tax as stated into the cost; credit notes mirror by class | Accounting Domain Agent (2026-10-07; OI-2). US purchase tax: platform owner (OI-19) | §4.3; S12, S24, S25, S32 |
+| AW40 | Bills, receipts and AP payments post through categories `VENDOR_BILL`, `GOODS_RECEIPT`, `AP_PAYMENT` with seeded keys and mappings, except an AP payment's bank credit (its selected `BANK_CASH` account); tenants remap by effective-dated GL mapping; no rule versions; both old event types retired, old events closed | Accounting Domain Agent (2026-10-07; OI-3) | §7.1; S12, S37, S41, S42 |
+| AW41 | AP payment: Dr 2000 / Dr 6030 fee / Cr the chosen `BANK_CASH` account, on the execution date; checks before the gateway; `CREDIT_CARD` and `OTHER` refused (OI-17); allocations post nothing; cash on delivery credits 1095 and its `CASH` payment posts nothing more | Accounting Domain Agent (2026-10-07; OI-3) | §4.3, §4.6, §7.1; S17, S42 |
+| AW42 | A bill posts on its bill date when that period is open, else on the approval date; a period or mapping refusal rolls the approval back; an approved bill with nothing allocated may be voided, its mirror dated on the void date, never in the original period | Accounting Domain Agent (2026-10-07; OI-2). Refusal status: Chief Architect (#2601) | §4.3, §7.1; S12, S13, S14 |
+| AW43 | Foreign-currency bills (`CURRENCY_HOLD`) never post; a foreign-currency AP payment is refused and a receipt fact without a functional currency is parked; never at par | Accounting Domain Agent (2026-10-07), applying ADR-0067 PC-9 (a), PC-13 (a) | §4.3; S41, S42 |
 
 ---
 
@@ -1025,7 +1088,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | --- | --- | --- |
 | 1 — Read and match | Shared chrome and help pattern; Your books (existing endpoints); automatic application of settled payments (AW14, accounting-only); Customer payments (unapplied-payments list + open invoices); home with lanes from existing aged AR/AP, bank accounts and reconciliation status; to-do list v1 (payments, bank lines, reconciliations) | `GET receivable-payments`, `GET customers/{id}/open-invoices`; chart tokens |
 | 2 — Counter correctness | Customer required at checkout; CASH house account; partyId non-null; unpaid walk-in sales | Order, CRM, Invoicing & Payments sign-off |
-| 3 — Bill approvals | Roles and permissions; `AWAITING_APPROVAL` / `REJECTED`; approval endpoints and limits; SoD guards; Bills to pay review for EDI bills; Approval limits (Bills section) | Security sign-off; OI-2, OI-3 |
+| 3 — Bill approvals | Roles and permissions; `AWAITING_APPROVAL` / `REJECTED`; approval endpoints and limits; SoD guards; posting at approval (AW37–AW43); receipt accruals (S41); AP payment posting (S42); Bills to pay review for EDI bills; Approval limits (Bills section) | Security sign-off; Inventory decision for S41 |
 | 4 — Cash and drawers | Float account and commands; drawer movement reasons, postings and limits; session policy; petty categories; undeposited sessions and Record bank deposit; cash-position and outlook read models; Approval limits (Drawer cash, Categories) | Phase 2; Order sign-off (R6.1) |
 | 5 — Bill intake | Vendor master in pos-supplier and the copies in pos-accounting and pos-order (G15); delivery-reference check (G16); `BillIntakeItem` and `BillIntakePort`; upload, spreadsheet import, read-back and confirm; extraction worker; inbound-mail edge and email-in; vendor statements; EDI adapter through `BillIntakePort`; PO matching (later) | New intake ADR accepted with the ADR-0044 §1, ADR-0049 and ADR-0050 amendments; the G14 defect fix; extraction provider (OI-1); OI-11, OI-14 |
 | 6 — Canada | §4.7 items | ADR-0067 Stage A Canadian launch work and the PC-15 readiness sign-off (OP-9); Canadian accountant (OI-4) |
@@ -1055,6 +1118,8 @@ binds only the default tenant today). S36 makes pos-inventory name pos-supplier 
 | S12 | 3 | Vendor-bill approval lifecycle: AWAITING_APPROVAL, approve, reject, and approval fields written only by an approval | louisburroughs/durion-positivity-backend#2509 |
 | S13 | 3 | Approval limits and separation of duties for bills | louisburroughs/durion-positivity-backend#2510 |
 | S14 | 3 | Bills to pay (EDI and goods-receipt bills) and the Bills section of Approval limits | louisburroughs/durion-positivity-frontend#464 |
+| S41 | 3 | Goods receipts post to inventory and GRNI from goodsreceipt.recorded (AW38) | louisburroughs/durion-positivity-backend#2602 |
+| S42 | 3 | AP payments post through AP_PAYMENT: bank account, fee, period and currency checks (AW40, AW41) | louisburroughs/durion-positivity-backend#2603 |
 | S15 | 4 | Chart of accounts, float and petty-expense categories | louisburroughs/durion-positivity-backend#2511 |
 | S16 | 4 | Drawer movements: fixed reasons, session policy (allowed / amount), elevation and the close fact v2 | louisburroughs/durion-positivity-backend#2512 |
 | S17 | 4 | Drawer movements post to the ledger; vendor cash on delivery becomes an AP payment | louisburroughs/durion-positivity-backend#2513 |
@@ -1080,9 +1145,11 @@ binds only the default tenant today). S36 makes pos-inventory name pos-supplier 
 | S34 | all | Accounting workspace: documentation, ADR-0070 amendments and API Artifacts Sync | louisburroughs/durion#552 |
 
 S38 and S39 were added on 2026-10-07 from the AW32 and AW35 rulings. The AW33 terms order is carried by S13 and S19 (comments on
-louisburroughs/durion-positivity-backend#2510 and #2515).
+louisburroughs/durion-positivity-backend#2510 and #2515). S41 and S42 were added on 2026-10-07 from the AW38 and AW41 rulings; AW37–AW43 amend S12, S13,
+S17, S19, S24, S25, S32, S37 (backend) and S14, S21 (frontend) by comments on their issues.
 
-Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 · C2 Canada louisburroughs/durion#553 · extraction provider louisburroughs/durion#549.
+Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553 · extraction
+provider louisburroughs/durion#549.
 
 ---
 
@@ -1091,8 +1158,8 @@ Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 ·
 | # | Item | Owner |
 | --- | --- | --- |
 | OI-1 | **Ownership resolved 2026-10-05 (AW22–AW29).** Remaining: choose the extraction provider (louisburroughs/durion#549) and the EDI provider (confirming AW28); accept ADR-0070 | Platform owner / architecture |
-| OI-2 | Reconcile the two vendor-bill GL posting triggers (goods-receipt bills post at creation; EDI bills are meant to post at approval but don't) and confirm their accounts | Accounting Domain Agent — **blocks Phase 3** (louisburroughs/durion#551) |
-| OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent — **blocks Phase 3** (louisburroughs/durion#551) |
+| OI-2 | **Resolved 2026-10-07 (AW37–AW39, AW42, AW43):** every bill posts once, at approval; goods receipts accrue through 2100; entries by class; dates, refusals and the void of an approved bill (louisburroughs/durion#551) | Accounting Domain Agent |
+| OI-3 | **Resolved 2026-10-07 (AW40, AW41):** posting categories `VENDOR_BILL`, `GOODS_RECEIPT`, `AP_PAYMENT` with seeded mappings and tenant remap, no posting-rule versions; AP payment entries (louisburroughs/durion#551) | Accounting Domain Agent |
 | OI-4 | Canadian accountant confirmation of the 50% meals rule, the $100/$500 thresholds and PST treatment | Platform owner (Phase 6 questions: louisburroughs/durion#553) |
 | OI-5 | **Signed off 2026-10-05 (AW31)** by the platform owner for Order, CRM, Invoicing & Payments, Security and Inventory. Still open: reassignment of a finalized invoice to another customer (Invoicing & Payments) | Platform owner |
 | OI-6 | **Resolved 2026-10-07 (AW34):** `CASH_SAFETY_CUSHION`'s meaning, unit and write contract (Accounting); the PUT is CONTROLLER-level, gated by `accounting:period:hard_lock` like the rest of `/v1/accounting/configuration`; the warning is the only signal, no notification (platform owner, louisburroughs/durion-positivity-backend#2574) | Platform owner |
@@ -1106,6 +1173,10 @@ Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 ·
 | OI-14 | Bank details for electronic vendor payments: where they (or a payment provider's tokens) live, who approves a change, and how the payment instruction carries the approved version so a mismatch is refused; never on Kafka | Accounting + Positivity (Integrations) + Security |
 | OI-15 | **Resolved 2026-10-07 (AW36):** no move while a session is OPEN or CLOSING; enforced by both sides (louisburroughs/durion-positivity-backend#2573) | Order |
 | OI-16 | **Resolved 2026-10-07:** `SUPPORT` keeps `supplier:vendor:read`, read-only and never bank or payment data (platform owner; louisburroughs/durion-positivity-backend#2575) | Security + Positivity (Integrations) |
+| OI-17 | Funding account for AP payments by `CREDIT_CARD` and `OTHER` (a card liability account and its reconciliation); refused until decided (AW41) | Accounting Domain Agent (asks the owner) |
+| OI-18 | Clearing old 2100 residuals (quantity and price differences no bill or receipt will clear): a guided command and its N-day threshold; until then a journal entry to 5050 with a justification | Accounting Domain Agent |
+| OI-19 | Sales tax charged on goods bought for resale, and use tax on untaxed purchases (US); interim: stated tax is cost, no use-tax accrual (AW39; louisburroughs/durion-positivity-backend#2599) | Platform owner with a US accountant |
+| OI-20 | `currencyCode` and per-line cost basis on `goodsreceipt.recorded`, and a costed return-to-vendor fact (AW38; louisburroughs/durion-positivity-backend#2598). Landed cost (capitalising freight and non-recoverable tax): #2600 | Inventory |
 
 ---
 
@@ -1136,8 +1207,10 @@ To change when the stories land: `pos-accounting/README.md` (endpoints, settings
 `VENDOR_PAYMENT_DETAILS_CHANGED`; from AW32, AW35 and AW36: `FLOAT_REGISTER_NOT_FOUND`, `FLOAT_RELOCATION_SAME_LOCATION`, `FLOAT_RELOCATION_DATE_INVALID`,
 `FLOAT_REGISTER_SESSION_OPEN`, `REGISTER_FLOAT_LOCATION_MISMATCH` (pos-order),
 `FLOAT_AMOUNT_NEGATIVE`, `FLOAT_DATE_BEFORE_RELOCATION`, `FLOAT_RELOCATION_NOT_REVERSIBLE`, `FLOAT_REVERSAL_BEFORE_RELOCATION`,
-`BANK_OPENING_BALANCE_ALREADY_ESTABLISHED`, `BANK_OPENING_BALANCE_NOT_FIRST`, `BANK_OPENING_BALANCE_ACCOUNT_NOT_ELIGIBLE`, `BANK_OPENING_BALANCE_EMPTY`);
-`VendorBillServiceImpl` Javadoc and
+`BANK_OPENING_BALANCE_ALREADY_ESTABLISHED`, `BANK_OPENING_BALANCE_NOT_FIRST`, `BANK_OPENING_BALANCE_ACCOUNT_NOT_ELIGIBLE`, `BANK_OPENING_BALANCE_EMPTY`;
+from AW37–AW43: `AP_BILL_UNCLASSIFIED`, `AP_BILL_NOT_VOIDABLE`, `AP_PAYMENT_METHOD_NOT_SUPPORTED`, and the mapping refusal's code once
+louisburroughs/durion-positivity-backend#2601 is decided); `.business-rules/POSTING_RULES_SCHEMA.md` (vendor bills and AP payments use posting categories,
+not rule versions, AW40); `VendorBillServiceImpl` Javadoc and
 comments (PO weight is 5, HIGH is ≥ 70);
 `.business-rules/PERMISSION_TAXONOMY.md` (the new keys; remove the unregistered `accounting:ap:approve` placeholder text in favour of
 the registered one); `.business-rules/DOMAIN_MODEL.md` (vendor-bill statuses, `BillIntakeItem`, vendor copy); `.business-rules/AGENT_GUIDE.md` (AW decisions
