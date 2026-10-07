@@ -349,7 +349,8 @@ The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per
   date. A register never moves while a session is OPEN or CLOSING (AW36): confirm-close, relocate, then open at the new location.
   Request `{fromLocationId, toLocationId, reason (ENTERED_IN_ERROR | MOVED), effectiveDate?, justification, requestId, overrideJustification?}`. Codes: 404
   `FLOAT_REGISTER_NOT_FOUND`; 422 `FLOAT_REGISTER_LOCATION_MISMATCH` (`fromLocationId` is not the register's location), `FLOAT_RELOCATION_SAME_LOCATION`,
-  `FLOAT_RELOCATION_DATE_INVALID`, `FLOAT_AMOUNT_NEGATIVE`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; a later float command dated before a move → 422
+  `FLOAT_RELOCATION_DATE_INVALID`, `FLOAT_AMOUNT_NEGATIVE`, `FLOAT_REGISTER_SESSION_OPEN` (the register's latest session is open, AW36), `PERIOD_CLOSED`,
+  `PERIOD_HARD_LOCKED`; a later float command dated before a move → 422
   `FLOAT_DATE_BEFORE_RELOCATION`; reversing a relocation entry → 409 `FLOAT_RELOCATION_NOT_REVERSIBLE`; reversing an earlier entry with a reversal date
   before the move → 422 `FLOAT_REVERSAL_BEFORE_RELOCATION`.
 - **Opening bank balances at go-live** (AW35, OI-10; S39, louisburroughs/durion-positivity-backend#2572) — once per `BANK_CASH` account in functional
@@ -1132,7 +1133,8 @@ With the bill-intake ruling (AW22–AW29), before Phase 5 stories:
 To change when the stories land: `pos-accounting/README.md` (endpoints, settings, error codes, events); `.business-rules/ERROR_CODES.md`
 (`AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`, `AP_BILL_NOT_APPROVABLE`, `AP_PAYMENT_SELF_APPROVED_BILL`, `FLOAT_ALREADY_ESTABLISHED`,
 `TAX_AMOUNT_IMPLAUSIBLE`, `PAYMENT_CUSTOMER_ALREADY_ASSIGNED`, `AP_BILL_DUPLICATE`, `BILL_INTAKE_FIELDS_UNCHECKED`, `VENDOR_INACTIVE`, `VENDOR_NOT_FOUND`,
-`VENDOR_PAYMENT_DETAILS_CHANGED`; from AW32 and AW35: `FLOAT_REGISTER_NOT_FOUND`, `FLOAT_RELOCATION_SAME_LOCATION`, `FLOAT_RELOCATION_DATE_INVALID`,
+`VENDOR_PAYMENT_DETAILS_CHANGED`; from AW32, AW35 and AW36: `FLOAT_REGISTER_NOT_FOUND`, `FLOAT_RELOCATION_SAME_LOCATION`, `FLOAT_RELOCATION_DATE_INVALID`,
+`FLOAT_REGISTER_SESSION_OPEN`, `REGISTER_FLOAT_LOCATION_MISMATCH` (pos-order),
 `FLOAT_AMOUNT_NEGATIVE`, `FLOAT_DATE_BEFORE_RELOCATION`, `FLOAT_RELOCATION_NOT_REVERSIBLE`, `FLOAT_REVERSAL_BEFORE_RELOCATION`,
 `BANK_OPENING_BALANCE_ALREADY_ESTABLISHED`, `BANK_OPENING_BALANCE_NOT_FIRST`, `BANK_OPENING_BALANCE_ACCOUNT_NOT_ELIGIBLE`, `BANK_OPENING_BALANCE_EMPTY`);
 `VendorBillServiceImpl` Javadoc and
