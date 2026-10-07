@@ -310,7 +310,8 @@ or nothing. Currency columns are `varchar` of length 3, 8, 16 or 255.
   its own code beside it, for example a functional-currency equivalent in accounting.
 - **R-2** No implicit default in main code: no `'USD'` literal, `DEFAULT 'USD'` column, `@Builder.Default` or `@PrePersist` currency, and no deployment-wide
   property. Where a default is genuinely wanted, such as a quote requested without a currency, it is the tenant's functional currency, read through PC-2's
-  accessor.
+  accessor. **Temporary exception (2026-10-07, ends at A2):** until PC-2's accessor exists, a module may read one required deployment property with no
+  default through one module accessor, stamping the currency on each document; each such property is listed under §3.3 and in the Changelog.
 - **R-3** Codes are validated against the ISO 4217 list (PC-4), not a pattern.
 - **R-4** Currency columns are three characters and `NOT NULL` wherever the row carries money.
 - **R-5** New fields are named `currencyCode`. Existing `currency` and `currencyUomId` names stay, because renaming an event field is a breaking change
@@ -1068,6 +1069,7 @@ its own without option 1 or 2. This questions the memo's order and MC-7's defaul
   in pos-accounting bank reconciliation (#2305).
 - **2026-10-07:** Stage-A interim recorded (CAP:550 S16, louisburroughs/durion-positivity-backend#2569). Until A1/A2 deliver the tenant's functional
   currency (PC-2), a module that must state `currencyCode` (R-1) may read one deployment property through one module accessor, as pos-accounting's
-  `LedgerCurrency` does over `accounting.ledger.base-currency` (§8 row A). The property has no default (R-2: fail at startup when unset), and a
-  document stamps the currency it was created in. First case: pos-order `pos.order.functional-currency`, stamped on each register session at open;
+  `LedgerCurrency` does over `accounting.ledger.base-currency` (§8 row A). This is a temporary exception to R-2 (stated in R-2): the property has
+  no default, the service fails at startup when it is unset, and a document stamps the currency it was created in. First case: pos-order
+  `pos.order.functional-currency`, stamped on each register session at open;
   noted under §3.3 and removed in A2 (louisburroughs/durion-positivity-backend#2583). No new interim property without a Changelog entry here.
