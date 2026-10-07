@@ -21,8 +21,9 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > Authority: financial meaning and posting semantics were ruled by the Accounting Domain Agent (`.claude/agents/domains/accounting-domain.md`) on 2026-10-05, in
 > five consultations, three of them on questions the platform owner delegated to it; business choices were made by the platform owner on 2026-10-05. Ownership
 > of supplier-invoice intake (OI-1) was ruled jointly by the Accounting, Positivity (Integrations) and Invoicing & Payments Domain Agents on 2026-10-05, in two
-> rounds, at the platform owner's request (AW22–AW29); the platform owner then placed the vendor master in pos-supplier (AW23). Every decision is recorded in
-> §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
+> rounds, at the platform owner's request (AW22–AW29); the platform owner then placed the vendor master in pos-supplier (AW23). On 2026-10-07 the Accounting
+> Domain Agent ruled AW32–AW35 at the platform owner's request: moving a register's float, AP default terms, the safety cushion and opening bank balances.
+> Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
 > (event-only domain walls), ADR-0047 (ledger inalterability), ADR-0048 (inventory valuation), ADR-0049 (supplier integration boundary), ADR-0050 (vendor
@@ -184,11 +185,16 @@ A projection, labelled as such, never posted.
 - **Money out (committed):** open amounts of `APPROVED` bills by due date.
 - **Possible out:** bills in `AWAITING_APPROVAL`, `PENDING_RECEIPT_MATCH` and `MATCH_EXCEPTION`, shown as a separate figure, not in the line.
 - **Excluded:** `CURRENCY_HOLD`, `VOIDED`, `REJECTED`; vendor credit notes are shown separately because applying them is not supported.
-- **Bills with no due date** (EDI bills): estimated due date = bill date + terms, terms taken from the matched purchase order's `paymentTermsId`, otherwise a
-  tenant default AP terms setting (default Net 30). Shown as "estimated", **never stored on the bill**. A person may enter the real due date during approval
+- **Bills with no due date** (EDI bills): estimated due date = bill date + terms, terms taken in this order (AW33): the matched purchase order's
+  `paymentTermsId` when it parses, the vendor's `defaultPaymentTerms` from pos-accounting's vendor copy (once S24 carries it), otherwise the tenant setting
+  `AP_DEFAULT_TERMS` (default `NET30`). Each estimate names its `termsSource` (`PURCHASE_ORDER` | `VENDOR` | `TENANT_DEFAULT`). Shown as "estimated",
+  **never stored on the bill**. A person may enter the real due date during approval
   review (audited). Aged payables uses the same estimate (today it ages these bills from the bill date).
-- **Safety cushion:** a tenant setting (the least cash the owner wants in the bank); the chart draws it as a reference line and the home pane warns when the
-  projected low point falls below it. (PROPOSED by design; owner and storage in §12 OI-6.)
+- **Safety cushion** `CASH_SAFETY_CUSHION` (AW34): the least balance the owner wants the projected line to reach. One tenant-wide amount in functional
+  currency, ≥ 0, with no more decimals than the currency has; unset = no line and no warning; 0 = warn when the projection goes negative. A threshold for the
+  outlook only: never posted, not a reserve or restricted cash, never subtracted from Your cash, and it refuses nothing. The chart draws it as a reference
+  line and the home pane warns (`BELOW_SAFETY_CUSHION`) when the projected low point is strictly below it; possible out and overdue receivables are not in
+  the comparison, because they are not in the line. Who may set it and whether a notification is sent: §12 OI-6.
 - Output: daily points (the chart samples them), lowest point and its date, expected in, expected out, possible out, the count and amount of estimated-due-date
   bills.
 
@@ -324,6 +330,24 @@ The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per
 - **Establish go-live float** — once per register: Dr 1080 / Cr **3900 Opening Balance Equity** (new; EQUITY), dated on the go-live date in an open period,
   `accounting:float:manage`, justification; a second attempt → 409 `FLOAT_ALREADY_ESTABLISHED`; correction = reverse and re-run. The accountant later clears
   3900 into **3000 Owner's Equity** (new; remappable to the legal form) by manual journal entry; period close warns while 3900 ≠ 0.
+- **Move a register's float to another location** (AW32; louisburroughs/durion-positivity-backend#2571) — one command for a location entered in error
+  (`ENTERED_IN_ERROR`) and a physical move (`MOVED`); the reason is recorded and changes nothing in the posting. It posts a reclass within 1080 for the
+  register's current amount, Dr 1080 [register, new location] / Cr 1080 [register, old location], dated on the effective date (default today; never in the
+  future; never before the register's latest standing float entry); no bank or 3900 line. Posted lines and their dimensions are never edited (ADR-0047):
+  location reports for earlier periods stay as posted and the history row explains them. The standard period gate applies, override included, as for Change
+  float. `accounting:float:manage` at **both** locations (ADR-0061). A register with no float row has nothing to move (404); a zero float moves without
+  posting; a negative float is fixed by Change float first. After a move no float entry may be dated before it; a relocation entry is never reversed (the
+  register is moved again instead); an earlier entry reversed after a move is re-homed to the current location by a follow-up reclass dated on the reversal
+  date. Whether a register may move while a session is open is Order's (§12 OI-15).
+- **Opening bank balances at go-live** (AW35, OI-10; louisburroughs/durion-positivity-backend#2572) — once per `BANK_CASH` account in functional currency,
+  `accounting:je:create` and `accounting:je:post`, justification. Dated on the cutover date (`asOfDate`: the day whose end-of-day bank balance is brought in,
+  usually the day before go-live) in an open period, no override. Posts through the new posting category `OPENING_BALANCE` (`OPENING_BALANCE_EQUITY` → 3900):
+  the bank statement balance (Dr bank, or Cr for an overdraft) and one bank line per outstanding item — check: Cr bank; deposit in transit: Dr bank — each
+  with its reference and date, against one 3900 line for the net. Refused when the account already has a standing line dated on or before `asOfDate` or a
+  committed statement starting by then; correction = reverse and re-run. The first statement reconciled starts on `asOfDate` + 1 with the statement balance
+  as its opening balance and the first-statement acknowledgement (bank reconciliation E2, D17); its preparer registers the itemized lines as outstanding
+  items (bank reconciliation §4.2 step 2), so the opening difference is zero and no gap bridge is needed. Cash and checks not deposited by the cutover are
+  deposited first and entered as deposits in transit. 3900 is cleared to 3000 as for the go-live float. AR, AP, inventory and loan openings are not covered.
 
 **Petty-expense categories** (AW18, numbered by AW30; Accounting owns the categories and their accounts). Six categories post to accounts the chart
 already has; three accounts are new:
@@ -682,27 +706,31 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Real due date during review | `PUT /v1/accounting/vendor-bills/{id}/due-date` · `accounting:ap:approve` | audited; replaces the estimate |
 | System approver | recorded on automatic approvals | identity and the automatic limit in force |
 | Bill GL posting at approval | depends on OI-2 / OI-3 | EDI bills |
-| AP approval policy | `GET/PUT /v1/accounting/ap-approval-policy` · `accounting:ap_approval_policy:manage` | clerk limit, automatic limit, history |
+| AP approval policy | `GET/PUT /v1/accounting/ap-approval-policy` · `accounting:ap_approval_policy:manage` | clerk limit, automatic limit, history; `defaultTerms` (`AP_DEFAULT_TERMS`, AW33): `DUE_ON_RECEIPT` or `NET<n>` with n 1–120 (pos-supplier's vendor vocabulary, not pos-invoice's `NET_30`), else 400 `VALIDATION_ERROR`; absent from a PUT = unchanged; a change is audited in the same history with the PUT's justification (S13, louisburroughs/durion-positivity-backend#2510) |
+| Cash safety cushion | `GET/PUT /v1/accounting/configuration/cash-safety-cushion` · permission pending §12 OI-6 | AW34; body `{amount \| null, justification (≥ 10 characters), requestId}`; null = unset; a negative amount or too many decimals → 400; audited old → new with actor and roles; event `ACCOUNTING_CONFIGURATION_CASH_SAFETY_CUSHION_SET` |
 | Pay guard | EXISTING `POST /v1/accounting/ap/payments` | 403 `AP_PAYMENT_SELF_APPROVED_BILL` |
 | Resolve match exception | EXISTING `POST /v1/accounting/vendor-bills/{billId}/resolve-exception` and `POST …/match-candidates/{candidateId}/select` | `operatorId` removed from both requests; `ACCEPT` subject to the limit; candidate selection moves the bill to `AWAITING_APPROVAL` |
 | Undeposited sessions | `GET /v1/accounting/undeposited-sessions` · `accounting:deposit:create` | from `RegisterSessionClosedV1` |
 | Record / reverse deposit | `POST /v1/accounting/deposits` · `accounting:deposit:create`; `POST /v1/accounting/deposits/{id}/reversal` · `accounting:deposit:reverse` | §4.5; `requestId`; posting category `BANK_DEPOSIT` |
-| Float | `POST /v1/accounting/registers/{registerId}/float` (change) · `POST /v1/accounting/registers/{registerId}/float/go-live` (once) · `accounting:float:manage` | §4.6; 409 `FLOAT_ALREADY_ESTABLISHED` |
+| Float | `POST /v1/accounting/registers/{registerId}/float` (change) · `POST /v1/accounting/registers/{registerId}/float/go-live` (once) · `POST /v1/accounting/registers/{registerId}/float/relocation` (AW32) · `accounting:float:manage`, for a relocation at both locations | §4.6; 409 `FLOAT_ALREADY_ESTABLISHED`. Relocation (louisburroughs/durion-positivity-backend#2571): body `{fromLocationId, toLocationId, reason (ENTERED_IN_ERROR \| MOVED), effectiveDate?, justification, requestId, overrideJustification?}`; 404 `FLOAT_REGISTER_NOT_FOUND`; 422 `FLOAT_REGISTER_LOCATION_MISMATCH`, `FLOAT_RELOCATION_SAME_LOCATION`, `FLOAT_RELOCATION_DATE_INVALID`, `FLOAT_AMOUNT_NEGATIVE`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; a later float command dated before a move → 422 `FLOAT_DATE_BEFORE_RELOCATION`; reversing a relocation entry → 409 `FLOAT_RELOCATION_NOT_REVERSIBLE`; reversing an earlier entry with a reversal date before the move → 422 `FLOAT_REVERSAL_BEFORE_RELOCATION` |
+| Opening bank balance | `POST /v1/accounting/bank-accounts/{glAccountId}/opening-balance` · `accounting:je:create` and `accounting:je:post` | §4.6, AW35 (louisburroughs/durion-positivity-backend#2572); body `{asOfDate, statementBalance, outstandingItems[{type (OUTSTANDING_CHECK \| DEPOSIT_IN_TRANSIT), reference, itemDate, amount}], justification, requestId}`; posting category `OPENING_BALANCE`; 409 `BANK_OPENING_BALANCE_ALREADY_ESTABLISHED`; 422 `BANK_OPENING_BALANCE_NOT_FIRST`, `BANK_OPENING_BALANCE_ACCOUNT_NOT_ELIGIBLE`, `BANK_OPENING_BALANCE_EMPTY`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED` |
 | Drawer movement posting | listener on the close fact v2 | `REGISTER_CASH_MOVEMENT` |
 | Vendor cash on delivery | listener on the close fact v2 → AP payment, method `CASH` (new), no gateway call | unapplied until the vendor's bill is allocated; Needs attention after N days |
 | Petty-expense categories | EXISTING mapping-key and gl-mapping endpoints under `REGISTER_CASH_MOVEMENT` | publishes `accounting.petty-expense-category.changed` |
-| Estimated due dates | in cash outlook and aged AP | never stored |
-| Seed | accounts 1080, 3000, 3900, 6295, 6375, 6380 (AW30); renumbering migration 6010→6100, 6015→6102, 6025→6105, 6115→6040, 6900→4940; retread add-on per tenant; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`; tenant settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION` | repeatable seeds |
+| Estimated due dates | in cash outlook and aged AP | never stored; terms from the purchase order, then the vendor's default, then `AP_DEFAULT_TERMS`, named by `termsSource` (AW33; S19, louisburroughs/durion-positivity-backend#2515) |
+| Seed | accounts 1080, 3000, 3900, 6295, 6375, 6380 (AW30); renumbering migration 6010→6100, 6015→6102, 6025→6105, 6115→6040, 6900→4940; retread add-on per tenant; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`, `OPENING_BALANCE` (`OPENING_BALANCE_EQUITY` → 3900, AW35); tenant settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS` (written through the AP approval policy, AW33), `CASH_SAFETY_CUSHION` (written through its configuration endpoint, AW34) | repeatable seeds |
 | Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path | DB check constraint |
 | Permissions | register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject`; new `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage` | registry + security catalog |
-| Events | `ACCOUNTING_PAYMENT_CUSTOMER_ASSIGN`, `ACCOUNTING_VENDOR_BILL_SUBMIT`, `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed`, `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
+| Events | `ACCOUNTING_PAYMENT_CUSTOMER_ASSIGN`, `ACCOUNTING_VENDOR_BILL_SUBMIT`, `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed` (gains kind `RELOCATION` and a nullable `previousLocationId`, additive, AW32), `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
 | CAD | `inputTaxRecoveryEnabled`; 1250/1260 postings; vendor-bill tax split | §4.7 |
 
 ### 7.2 `pos-order`
 
 Checkout customer requirement and Walk-in selection; movement reasons enum with category/vendor/bag number; elevation for over-limit movements; session policy
 `GET/PUT /v1/orders/session-policy` (`order:session_policy:manage`, event `ORDER_SESSION_POLICY_UPDATE`); `order:session:approve_cash_movement`; opening float from
-configuration; variance tolerance from the policy; `clerkId` from the security context; close fact v2 (or movement facts); CAD rounding exclusion.
+configuration; variance tolerance from the policy; `clerkId` from the security context; close fact v2 (or movement facts); CAD rounding exclusion. A register
+moving between locations (AW32): open sessions and the `RELOCATION` fact are Order's to rule (§12 OI-15); drawer postings at close take the session's
+location, never the float row's.
 **Requires Order sign-off on the R11.2 reversal and the R6.1 replacement.**
 
 ### 7.3 `pos-invoice`, `pos-customer`, `pos-security-service`, `pos-tax`, `pos-supplier`
@@ -721,7 +749,7 @@ configuration; variance tolerance from the policy; `clerkId` from the security c
   file store. pos-supplier never stores or republishes uploaded documents (AW22).
 - `pos-supplier` (AW23): the vendor master (`Vendor`, endpoints under `/v1/supplier/vendors`, `supplier:vendor:read|write`, remit-to approval
   `supplier:vendor_remit:approve`), profiles gain a required `vendorId`, the `supplier.vendor.updated` fact and the per-tenant `supplier.manifest.v1` with
-  re-send (new: pos-supplier publishes no vendor manifest today).
+  re-send (new: pos-supplier publishes no vendor manifest today). Whether `SUPPORT` keeps `supplier:vendor:read`: §12 OI-16.
 - `pos-order`: an `ext_supplier_vendor` copy; a new purchase order's vendor must exist and be active in it (G15). `pos-inventory` takes the vendor id through its
   existing purchase-order copy and keeps its own vendor copy, which its purchase suggestions need to name a pos-supplier vendor.
 
@@ -897,6 +925,10 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 - Two petty expenses whose running total exceeds the limit require elevation on the second; switching petty off mid-session refuses the next one only.
 - Deposit posting balances (Dr bank = Cr 1090 ± 1095); unbalanced → 422; reversal restores 1090/1095.
 - Go-live float twice → 409; change float posts against the chosen bank account.
+- A register moved from A to B posts Dr 1080 [B] / Cr 1080 [A] for its amount and no other line; a caller without float management at either location → 403
+  (AW32).
+- An opening bank balance with an outstanding check posts the check as its own bank line; once it is registered, the first reconciliation's opening
+  difference is zero (AW35).
 
 ### 9.5 Your books and settings
 
@@ -922,7 +954,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 
 ---
 
-## 10. Decisions record (2026-10-05)
+## 10. Decisions record (2026-10-05, 2026-10-07)
 
 | # | Decision | Decided by | Consequence |
 | --- | --- | --- | --- |
@@ -936,7 +968,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW8 | New `AWAITING_APPROVAL`; `REJECTED` write path; send without match with justification | Accounting Domain Agent | §4.3 |
 | AW9 | Your cash = In the bank (`BANK_CASH`) + Waiting to be deposited (1090 + 1095) + Kept in drawers (1080); statement alongside; 2350 never cash | Accounting Domain Agent (delegated by the owner) | §4.1 |
 | AW10 | Record bank deposit command and undeposited-sessions read model in pos-accounting | Accounting Domain Agent (delegated) | §4.5 |
-| AW11 | Outlook counts approved bills; pending bills separate; overdue invoices not assumed; estimated due dates (PO terms, else Net 30) never stored | Accounting Domain Agent (delegated) | §4.2 |
+| AW11 | Outlook counts approved bills; pending bills separate; overdue invoices not assumed; estimated due dates (PO terms, else Net 30) never stored; terms order amended by AW33 | Accounting Domain Agent (delegated) | §4.2 |
 | AW12 | Every sale needs a registered customer; a system CASH customer, picked explicitly, only for paid-in-full sales; nets to zero daily | Platform owner (rule and CASH fallback); controls by the Accounting Domain Agent | §4.4 |
 | AW13 | From go-live only; no backfill of past sales | Platform owner | §4.4 |
 | AW14 | Settled payments apply automatically to the invoice they were taken against | Accounting Domain Agent | §4.4 |
@@ -957,6 +989,10 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW29 | Inbound CFDI is an intake format (extraction worker → pos-accounting); outbound CFDI is pos-invoice's; the two share at most a non-deployed schema library; one later ADR amendment places SAT/PAC validation for both directions (one connector) | Same three agents | §4.8, §4.9 |
 | AW30 | Expense range plan 6000–6999; petty categories post to existing 6340, 6430, 6370, 6210, 6410, 6250 and new 6380, 6375, 6295; existing accounts renumbered (6010→6100, 6015→6102, 6025→6105, 6115→6040, 6900→4940) by a new migration; the retread add-on is a tenant-setup choice | Accounting Domain Agent (the platform owner delegated the numbers and allowed renumbering: no real data) | §4.6, §7.1 |
 | AW31 | Sign-offs given: Order (customer required at checkout, R11.2 reversed; cart-customer change and tendered amount; fixed drawer reasons, allowed / amount limits, manager approval; opening float from configuration), Security (roles `ACCOUNTING_CLERK` and `GENERAL_MANAGER`; `accounting:ap:approve` / `accounting:ap:reject` reinstated; manager approval at a shared register by a **step-up endpoint** returning a single-use approval token, no second sign-in), CRM (CASH house account), Invoicing & Payments (missing customer refused; `PaymentSettledV1.partyId` required, schema 2), Inventory (only mapped, active vendors are purchase candidates; admin maintains the mapping) | Platform owner | §4.4, §4.6, §7.2, §7.3 |
+| AW32 | A register's float moves to another location by one relocation command (reason `ENTERED_IN_ERROR` \| `MOVED`): a 1080 reclass between location dimensions for the current amount, dated on the effective date; posted lines never edited; standard period gate; `accounting:float:manage` at both locations; relocation entries are not reversed; an earlier entry reversed after a move is re-homed | Accounting Domain Agent (2026-10-07; new requirement from the platform owner). Open sessions: Order (OI-15) | §4.6, §7.1, §7.2; louisburroughs/durion-positivity-backend#2571 |
+| AW33 | `AP_DEFAULT_TERMS` is written through the AP approval policy (`accounting:ap_approval_policy:manage`), in pos-supplier's vocabulary (`DUE_ON_RECEIPT` \| `NET<n>`, n 1–120), audited with a justification; estimated due dates take terms from the purchase order, then the vendor's default, then `AP_DEFAULT_TERMS` (amends AW11) | Accounting Domain Agent (2026-10-07) | §4.2, §7.1; louisburroughs/durion-positivity-backend#2510, #2515 |
+| AW34 | Safety cushion: a tenant-wide functional-currency threshold for the outlook only (never posted, never subtracted from Your cash, refuses nothing); `belowCushion` when the projected low point is strictly below it; written by `PUT /v1/accounting/configuration/cash-safety-cushion` with a justification | Accounting Domain Agent (2026-10-07). Who writes it and any notification: platform owner (OI-6) | §4.2, §7.1; louisburroughs/durion-positivity-backend#2515, #2574 |
+| AW35 | Opening bank balances: once per bank account, dated on the cutover date, the bank statement balance plus one bank line per outstanding item against 3900; the first reconciled statement starts the next day and registers the items as outstanding | Accounting Domain Agent (2026-10-07; OI-10) | §4.6, §7.1; louisburroughs/durion-positivity-backend#2572 |
 
 ---
 
@@ -1018,6 +1054,10 @@ binds only the default tenant today). S36 makes pos-inventory name pos-supplier 
 | S33 | 6 | Canada: recovery columns and the registration panel | louisburroughs/durion-positivity-frontend#470 |
 | S34 | all | Accounting workspace: documentation, ADR-0070 amendments and API Artifacts Sync | louisburroughs/durion#552 |
 
+Added on 2026-10-07 from the Accounting Domain rulings, both phase 4: register float relocation (AW32, after S15)
+louisburroughs/durion-positivity-backend#2571; opening bank balances through 3900 (AW35, OI-10) louisburroughs/durion-positivity-backend#2572. The AW33
+terms order is carried by S13 and S19 (comments on louisburroughs/durion-positivity-backend#2510 and #2515).
+
 Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 · C2 Canada louisburroughs/durion#553 · extraction provider louisburroughs/durion#549.
 
 ---
@@ -1031,15 +1071,17 @@ Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 ·
 | OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent — **blocks Phase 3** (louisburroughs/durion#551) |
 | OI-4 | Canadian accountant confirmation of the 50% meals rule, the $100/$500 thresholds and PST treatment | Platform owner (Phase 6 questions: louisburroughs/durion#553) |
 | OI-5 | **Signed off 2026-10-05 (AW31)** by the platform owner for Order, CRM, Invoicing & Payments, Security and Inventory. Still open: reassignment of a finalized invoice to another customer (Invoicing & Payments) | Platform owner |
-| OI-6 | Safety cushion: tenant setting name, who may set it (proposed `accounting:ap_approval_policy:manage` holders) and whether it raises a home-pane warning only or also a notification | Platform owner |
+| OI-6 | **Partly resolved 2026-10-07 (AW34):** the setting name `CASH_SAFETY_CUSHION`, its meaning, unit and write contract. Still open: which permission writes it (Accounting recommends the `accounting:ap_approval_policy:manage` holders) and whether a notification is sent beyond the home-pane warning (louisburroughs/durion-positivity-backend#2574) | Platform owner |
 | OI-7 | True 2-way / 3-way purchase-order matching (the "Ordered" column) | Accounting + Order |
 | OI-8 | Intake path for unidentified customer receipts (bank credit or mailed check) and the `assign-customer` endpoint | Accounting Domain Agent |
 | OI-9 | Treatment of FET, tire/environmental fees and core charges on vendor bills | Accounting Domain Agent (must ask the owner) |
-| OI-10 | Opening bank balances at go-live through 3900, same pattern as the go-live float | Accounting Domain Agent |
+| OI-10 | **Resolved 2026-10-07 (AW35):** opening bank balances at go-live through 3900, with outstanding items as their own bank lines (louisburroughs/durion-positivity-backend#2572) | Accounting Domain Agent |
 | OI-11 | Whether EDI invoices pass through a read-back draft (the confirming person then becomes the creator under AW6.1) or keep becoming bills directly, created by the system as today | Accounting Domain Agent |
 | OI-12 | Where SAT / PAC validation of CFDI lives, for both directions (one connector), when Mexico is scheduled | Accounting + Invoicing & Payments (ADR amendment) |
 | OI-13 | Allocating vendor credit notes against open bills (new capability) | Accounting Domain Agent |
 | OI-14 | Bank details for electronic vendor payments: where they (or a payment provider's tokens) live, who approves a change, and how the payment instruction carries the approved version so a mismatch is refused; never on Kafka | Accounting + Positivity (Integrations) + Security |
+| OI-15 | Whether a register (`terminalId`) may change location while a session is open, and how pos-order treats an `accounting.float.changed` fact of kind `RELOCATION` (AW32). Accounting makes no synchronous check (ADR-0044 R1); if moves must wait for session close, pos-order enforces it or publishes a session-opened fact (louisburroughs/durion-positivity-backend#2573) | Order |
+| OI-16 | Whether `SUPPORT` keeps `supplier:vendor:read` under the ADR-0062 §7 read-only ceiling: S23 granted it outside the AW31 sign-off, so impersonation sessions see remit-to postal addresses, never bank data. Accounting has no objection while the permission stays read-only and never carries bank details (OI-14) (louisburroughs/durion-positivity-backend#2575) | Security + Positivity (Integrations) |
 
 ---
 
@@ -1067,7 +1109,10 @@ With the bill-intake ruling (AW22–AW29), before Phase 5 stories:
 To change when the stories land: `pos-accounting/README.md` (endpoints, settings, error codes, events); `.business-rules/ERROR_CODES.md`
 (`AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`, `AP_BILL_NOT_APPROVABLE`, `AP_PAYMENT_SELF_APPROVED_BILL`, `FLOAT_ALREADY_ESTABLISHED`,
 `TAX_AMOUNT_IMPLAUSIBLE`, `PAYMENT_CUSTOMER_ALREADY_ASSIGNED`, `AP_BILL_DUPLICATE`, `BILL_INTAKE_FIELDS_UNCHECKED`, `VENDOR_INACTIVE`, `VENDOR_NOT_FOUND`,
-`VENDOR_PAYMENT_DETAILS_CHANGED`); `VendorBillServiceImpl` Javadoc and
+`VENDOR_PAYMENT_DETAILS_CHANGED`; from AW32 and AW35: `FLOAT_REGISTER_NOT_FOUND`, `FLOAT_RELOCATION_SAME_LOCATION`, `FLOAT_RELOCATION_DATE_INVALID`,
+`FLOAT_AMOUNT_NEGATIVE`, `FLOAT_DATE_BEFORE_RELOCATION`, `FLOAT_RELOCATION_NOT_REVERSIBLE`, `FLOAT_REVERSAL_BEFORE_RELOCATION`,
+`BANK_OPENING_BALANCE_ALREADY_ESTABLISHED`, `BANK_OPENING_BALANCE_NOT_FIRST`, `BANK_OPENING_BALANCE_ACCOUNT_NOT_ELIGIBLE`, `BANK_OPENING_BALANCE_EMPTY`);
+`VendorBillServiceImpl` Javadoc and
 comments (PO weight is 5, HIGH is ≥ 70);
 `.business-rules/PERMISSION_TAXONOMY.md` (the new keys; remove the unregistered `accounting:ap:approve` placeholder text in favour of
 the registered one); `.business-rules/DOMAIN_MODEL.md` (vendor-bill statuses, `BillIntakeItem`, vendor copy); `.business-rules/AGENT_GUIDE.md` (AW decisions
