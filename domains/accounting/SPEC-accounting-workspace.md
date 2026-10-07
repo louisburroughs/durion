@@ -22,7 +22,8 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > five consultations, three of them on questions the platform owner delegated to it; business choices were made by the platform owner on 2026-10-05. Ownership
 > of supplier-invoice intake (OI-1) was ruled jointly by the Accounting, Positivity (Integrations) and Invoicing & Payments Domain Agents on 2026-10-05, in two
 > rounds, at the platform owner's request (AW22–AW29); the platform owner then placed the vendor master in pos-supplier (AW23). On 2026-10-07 the Accounting
-> Domain Agent ruled AW32–AW35 at the platform owner's request: moving a register's float, AP default terms, the safety cushion and opening bank balances.
+> Domain Agent ruled AW32–AW35 at the platform owner's request: moving a register's float, AP default terms, the safety cushion and opening bank balances;
+> AW36 records the platform owner's and Order's no-move-during-an-open-session rule.
 > Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
@@ -345,10 +346,11 @@ The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per
   float. `accounting:float:manage` at **both** locations (ADR-0061). A register with no float row has nothing to move (404); a zero float moves without
   posting; a negative float is fixed by Change float first. After a move no float entry may be dated before it; a relocation entry is never reversed (the
   register is moved again instead); an earlier entry reversed after a move is re-homed to the current location by a follow-up reclass dated on the reversal
-  date. Whether a register may move while a session is open is Order's (§12 OI-15).
+  date. A register never moves while a session is OPEN or CLOSING (AW36): confirm-close, relocate, then open at the new location.
   Request `{fromLocationId, toLocationId, reason (ENTERED_IN_ERROR | MOVED), effectiveDate?, justification, requestId, overrideJustification?}`. Codes: 404
   `FLOAT_REGISTER_NOT_FOUND`; 422 `FLOAT_REGISTER_LOCATION_MISMATCH` (`fromLocationId` is not the register's location), `FLOAT_RELOCATION_SAME_LOCATION`,
-  `FLOAT_RELOCATION_DATE_INVALID`, `FLOAT_AMOUNT_NEGATIVE`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; a later float command dated before a move → 422
+  `FLOAT_RELOCATION_DATE_INVALID`, `FLOAT_AMOUNT_NEGATIVE`, `FLOAT_REGISTER_SESSION_OPEN` (the register's latest session is open, AW36), `PERIOD_CLOSED`,
+  `PERIOD_HARD_LOCKED`; a later float command dated before a move → 422
   `FLOAT_DATE_BEFORE_RELOCATION`; reversing a relocation entry → 409 `FLOAT_RELOCATION_NOT_REVERSIBLE`; reversing an earlier entry with a reversal date
   before the move → 422 `FLOAT_REVERSAL_BEFORE_RELOCATION`.
 - **Opening bank balances at go-live** (AW35, OI-10; S39, louisburroughs/durion-positivity-backend#2572) — once per `BANK_CASH` account in functional
@@ -748,7 +750,8 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 Checkout customer requirement and Walk-in selection; movement reasons enum with category/vendor/bag number; elevation for over-limit movements; session policy
 `GET/PUT /v1/orders/session-policy` (`order:session_policy:manage`, event `ORDER_SESSION_POLICY_UPDATE`); `order:session:approve_cash_movement`; opening float from
 configuration; variance tolerance from the policy; `clerkId` from the security context; close fact v2 (or movement facts); CAD rounding exclusion. A register
-moving between locations (AW32): open sessions and the `RELOCATION` fact are Order's to rule (§12 OI-15); drawer postings at close take the session's
+moving between locations (AW32, AW36): no move while a session is OPEN or CLOSING; pos-order publishes `order.session.opened` (S40) and pos-accounting
+refuses a relocation from its session replica (422 `FLOAT_REGISTER_SESSION_OPEN`, S38); drawer postings at close take the session's
 location, never the float row's.
 **Requires Order sign-off on the R11.2 reversal and the R6.1 replacement.**
 
@@ -768,7 +771,7 @@ location, never the float row's.
   file store. pos-supplier never stores or republishes uploaded documents (AW22).
 - `pos-supplier` (AW23): the vendor master (`Vendor`, endpoints under `/v1/supplier/vendors`, `supplier:vendor:read|write`, remit-to approval
   `supplier:vendor_remit:approve`), profiles gain a required `vendorId`, the `supplier.vendor.updated` fact and the per-tenant `supplier.manifest.v1` with
-  re-send (new: pos-supplier publishes no vendor manifest today). Whether `SUPPORT` keeps `supplier:vendor:read`: §12 OI-16.
+  re-send (new: pos-supplier publishes no vendor manifest today). `SUPPORT` keeps `supplier:vendor:read`, read-only (§12 OI-16).
 - `pos-order`: an `ext_supplier_vendor` copy; a new purchase order's vendor must exist and be active in it (G15). `pos-inventory` takes the vendor id through its
   existing purchase-order copy and keeps its own vendor copy, which its purchase suggestions need to name a pos-supplier vendor.
 
@@ -1012,6 +1015,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW33 | `AP_DEFAULT_TERMS` is written through the AP approval policy, audited; estimated due dates take terms from the purchase order, then the vendor's default, then `AP_DEFAULT_TERMS` (amends AW11) | Accounting Domain Agent (2026-10-07) | §4.2, §7.1; louisburroughs/durion-positivity-backend#2510, #2515 |
 | AW34 | Safety cushion: one tenant-wide threshold in functional currency for the outlook only, never posted; a warning when the projected low point is below it; written through its configuration endpoint | Accounting Domain Agent (2026-10-07); writer and warning-only: platform owner (OI-6) | §4.2, §7.1; louisburroughs/durion-positivity-backend#2515, #2574 |
 | AW35 | Opening bank balances: once per bank account, dated on the cutover date, the bank statement balance plus one bank line per outstanding item against 3900; the first reconciled statement starts the next day and registers the items as outstanding | Accounting Domain Agent (2026-10-07; OI-10) | §4.6, §7.1; S39 |
+| AW36 | No register move while its session is OPEN or CLOSING. pos-order publishes `order.session.opened`; pos-accounting refuses a relocation from a session replica (422 `FLOAT_REGISTER_SESSION_OPEN`); pos-order refuses an open at a location other than the float's (422 `REGISTER_FLOAT_LOCATION_MISMATCH`) | Platform owner; Order Domain Agent (2026-10-07; OI-15) | §4.6; S16, S38, S40 |
 
 ---
 
@@ -1100,8 +1104,8 @@ Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 ·
 | OI-12 | Where SAT / PAC validation of CFDI lives, for both directions (one connector), when Mexico is scheduled | Accounting + Invoicing & Payments (ADR amendment) |
 | OI-13 | Allocating vendor credit notes against open bills (new capability) | Accounting Domain Agent |
 | OI-14 | Bank details for electronic vendor payments: where they (or a payment provider's tokens) live, who approves a change, and how the payment instruction carries the approved version so a mismatch is refused; never on Kafka | Accounting + Positivity (Integrations) + Security |
-| OI-15 | Whether a register (`terminalId`) may change location while a session is open, and how pos-order treats an `accounting.float.changed` fact of kind `RELOCATION` (AW32). Accounting makes no synchronous check (ADR-0044 R1); if moves must wait for session close, pos-order enforces it or publishes a session-opened fact (louisburroughs/durion-positivity-backend#2573) | Order |
-| OI-16 | Whether `SUPPORT` keeps `supplier:vendor:read` (ADR-0062 §7 read-only ceiling). S23 granted it outside the AW31 sign-off, so impersonation sees remit-to postal addresses, never bank data; Accounting has no objection while it stays read-only (louisburroughs/durion-positivity-backend#2575) | Security + Positivity (Integrations) |
+| OI-15 | **Resolved 2026-10-07 (AW36):** no move while a session is OPEN or CLOSING; enforced by both sides (louisburroughs/durion-positivity-backend#2573) | Order |
+| OI-16 | **Resolved 2026-10-07:** `SUPPORT` keeps `supplier:vendor:read`, read-only and never bank or payment data (platform owner; louisburroughs/durion-positivity-backend#2575) | Security + Positivity (Integrations) |
 
 ---
 
@@ -1129,7 +1133,8 @@ With the bill-intake ruling (AW22–AW29), before Phase 5 stories:
 To change when the stories land: `pos-accounting/README.md` (endpoints, settings, error codes, events); `.business-rules/ERROR_CODES.md`
 (`AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`, `AP_BILL_NOT_APPROVABLE`, `AP_PAYMENT_SELF_APPROVED_BILL`, `FLOAT_ALREADY_ESTABLISHED`,
 `TAX_AMOUNT_IMPLAUSIBLE`, `PAYMENT_CUSTOMER_ALREADY_ASSIGNED`, `AP_BILL_DUPLICATE`, `BILL_INTAKE_FIELDS_UNCHECKED`, `VENDOR_INACTIVE`, `VENDOR_NOT_FOUND`,
-`VENDOR_PAYMENT_DETAILS_CHANGED`; from AW32 and AW35: `FLOAT_REGISTER_NOT_FOUND`, `FLOAT_RELOCATION_SAME_LOCATION`, `FLOAT_RELOCATION_DATE_INVALID`,
+`VENDOR_PAYMENT_DETAILS_CHANGED`; from AW32, AW35 and AW36: `FLOAT_REGISTER_NOT_FOUND`, `FLOAT_RELOCATION_SAME_LOCATION`, `FLOAT_RELOCATION_DATE_INVALID`,
+`FLOAT_REGISTER_SESSION_OPEN`, `REGISTER_FLOAT_LOCATION_MISMATCH` (pos-order),
 `FLOAT_AMOUNT_NEGATIVE`, `FLOAT_DATE_BEFORE_RELOCATION`, `FLOAT_RELOCATION_NOT_REVERSIBLE`, `FLOAT_REVERSAL_BEFORE_RELOCATION`,
 `BANK_OPENING_BALANCE_ALREADY_ESTABLISHED`, `BANK_OPENING_BALANCE_NOT_FIRST`, `BANK_OPENING_BALANCE_ACCOUNT_NOT_ELIGIBLE`, `BANK_OPENING_BALANCE_EMPTY`);
 `VendorBillServiceImpl` Javadoc and
