@@ -279,9 +279,11 @@ louisburroughs/durion-positivity-backend#2603).
   consulted. *Tax on resale goods:* stated tax on a `RECEIPT_MATCHED` or `GOODS` line usually means the vendor has misclassified the shop, so approve and
   `ACCEPT` refuse the bill (422 `AP_BILL_TAX_ON_RESALE_GOODS`) and automatic approval leaves it `AWAITING_APPROVAL` — unless the approver gives a
   `taxOnResaleOverrideJustification` (≥ 10 characters) for that bill, or the vendor's AP setting `acceptTaxOnResaleGoods` is on (written with
-  `accounting:ap_approval_policy:manage`, audited). An overridden bill posts as above, the tax in 5050. *Use tax:* each `EXPENSE` line with no stated
-  tax accrues use tax from pos-tax (`USE`, priced like a sale; the stub always returns a rate) in the approval entry: Dr the line's expense key / Cr
-  **2240 Use Tax Payable** (`VENDOR_BILL` key `USE_TAX_PAYABLE`), mirrored by a void. Goods for resale accrue none. US tenants only.
+  `accounting:ap_approval_policy:manage`, audited; it needs S24's vendor settings, so until S24 lands the per-bill override is the only one). The bill
+  read reports the check `TAX_ON_RESALE_GOODS`. An overridden bill posts as above, the tax in 5050. *Use tax:* each `EXPENSE` line of a bill (never a
+  credit note) with no stated tax accrues use tax from pos-tax (`USE`, priced like a sale; the stub always returns a rate) in the approval entry: Dr the
+  line's expense key / Cr **2240 Use Tax Payable** (`VENDOR_BILL` key `USE_TAX_PAYABLE`), mirrored by a void. Goods for resale accrue none. US tenants
+  only.
 - **Matching keeps what was billed.** `/match` and candidate selection set the bill's total to the vendor's billed total and keep the billed quantity and price
   of each line; EDI bills keep the stated net and tax (none stated: net = gross, tax 0).
 - **Dates and refusals (AW42).** A bill posts on its bill date when that date is on or before the approval date and its period is OPEN, otherwise on the
@@ -782,7 +784,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Real due date during review | `PUT /v1/accounting/vendor-bills/{id}/due-date` · `accounting:ap:approve` | audited; replaces the estimate |
 | System approver | recorded on automatic approvals | identity and the automatic limit in force |
 | Bill GL posting at approval | In the approve, `ACCEPT` and system-approval transaction; category `VENDOR_BILL` (AW37–AW40; S12, backend #2509) | §4.3 "Posting"; a refusal rolls back (422 `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; mapping: #2601); the read serves `postingDate`, `postingDateRule`, the entry's reference; old `VENDOR_BILL_GL_POSTING` events closed, never retried |
-| US purchase tax stubs | approve and `ACCEPT` bodies gain `taxOnResaleOverrideJustification`; AP vendor setting `acceptTaxOnResaleGoods` · `accounting:ap_approval_policy:manage` (AW44; S43, louisburroughs/durion-positivity-backend#2604) | §4.3; 422 `AP_BILL_TAX_ON_RESALE_GOODS`; use tax accrued to 2240 at approval from pos-tax `USE` |
+| US purchase tax stubs | approve and `ACCEPT` bodies gain `taxOnResaleOverrideJustification`; AP vendor setting `acceptTaxOnResaleGoods` · `accounting:ap_approval_policy:manage` (AW44; S43, louisburroughs/durion-positivity-backend#2604) | §4.3; 422 `AP_BILL_TAX_ON_RESALE_GOODS`; the bill read reports the check `TAX_ON_RESALE_GOODS`; use tax accrued to 2240 at approval from pos-tax `USE`, bills only (no credit notes) |
 | Void an approved bill | `POST /v1/accounting/vendor-bills/{id}/void` · `accounting:ap:reject` and the approval tier | AW42; nothing allocated, else 409 `AP_BILL_NOT_VOIDABLE`; reason ≥ 10 characters; mirror entry dated on the void date |
 | Goods-receipt accrual | Listener on `goodsreceipt.recorded` (S41, louisburroughs/durion-positivity-backend#2602) | AW38; Dr 1300 / Cr 2100 / Dr or Cr 5050, dated `occurredAt`; key `GOODS_RECEIPT_ACCRUAL:<receiptId>`; a missing or foreign currency is parked |
 | AP payment posting | EXISTING `POST /v1/accounting/ap/payments` gains `bankAccountId`, loses `netAmount`; `POST …/{paymentId}/gl-posting-retry` · `accounting:je:post` (S42, louisburroughs/durion-positivity-backend#2603) | AW41; category `AP_PAYMENT`; refused before the gateway: 422 `AP_PAYMENT_METHOD_NOT_SUPPORTED`, `CURRENCY_NOT_SUPPORTED`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED` |
@@ -1093,7 +1095,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW41 | AP payment: Dr 2000 / Dr 6030 fee / Cr the chosen `BANK_CASH` account, on the execution date; checks before the gateway; `CREDIT_CARD` and `OTHER` refused (OI-17); allocations post nothing; cash on delivery credits 1095 and its `CASH` payment posts nothing more | Accounting Domain Agent (2026-10-07; OI-3) | §4.3, §4.6, §7.1; S17, S42 |
 | AW42 | A bill posts on its bill date when that period is open, else on the approval date; a period or mapping refusal rolls the approval back; an approved bill with nothing allocated may be voided, its mirror dated on the void date, never in the original period | Accounting Domain Agent (2026-10-07; OI-2). Refusal status: Chief Architect (#2601) | §4.3, §7.1; S12, S13, S14 |
 | AW43 | Foreign-currency bills (`CURRENCY_HOLD`) never post; a foreign-currency AP payment is refused and a receipt fact without a functional currency is parked; never at par | Accounting Domain Agent (2026-10-07), applying ADR-0067 PC-9 (a), PC-13 (a) | §4.3; S41, S42 |
-| AW44 | US purchase tax, stubbed: stated tax on resale goods holds a bill from approval unless overridden for that bill (justification) or permanently for the vendor (`acceptTaxOnResaleGoods`); untaxed `EXPENSE` lines accrue use tax from pos-tax (`USE`) to new 2240 Use Tax Payable at approval; per-state rules wait for research | Platform owner (2026-10-07; OI-19, louisburroughs/durion-positivity-backend#2599) | §4.3, §7.1, §7.3; S43 |
+| AW44 | US purchase tax, stubbed: stated tax on resale goods holds a bill from approval unless overridden for that bill (justification) or permanently for the vendor (`acceptTaxOnResaleGoods`); untaxed `EXPENSE` lines of a bill (not a credit note) accrue use tax from pos-tax (`USE`) to new 2240 Use Tax Payable at approval; per-state rules wait for research | Platform owner (2026-10-07; OI-19, louisburroughs/durion-positivity-backend#2599) | §4.3, §7.1, §7.3; S43 |
 
 ---
 
@@ -1162,8 +1164,9 @@ binds only the default tenant today). S36 makes pos-inventory name pos-supplier 
 
 S38 and S39 were added on 2026-10-07 from the AW32 and AW35 rulings. The AW33 terms order is carried by S13 and S19 (comments on
 louisburroughs/durion-positivity-backend#2510 and #2515). S41 and S42 were added on 2026-10-07 from the AW38 and AW41 rulings; AW37–AW43 amend S12, S13,
-S17, S19, S24, S25, S32, S37 (backend) and S14, S21 (frontend) by comments on their issues. S43 was added on 2026-10-07 from AW44; it follows S12 and
-S24, and S14 shows its hold and override.
+S17, S19, S24, S25, S32, S37 (backend) and S14, S21 (frontend) by comments on their issues. S43 was added on 2026-10-07 from AW44; it follows S12, and
+its per-vendor setting `acceptTaxOnResaleGoods` waits for S24 (phase 5), the per-bill override standing alone until then. S14 still needs an amendment
+to show the hold and the override.
 
 Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553 · extraction
 provider louisburroughs/durion#549.
