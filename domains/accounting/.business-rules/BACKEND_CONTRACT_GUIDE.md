@@ -664,7 +664,24 @@ Headers and auth notes:
 
 ### Story #6 — Update Invoice Payment Status from Payment Outcomes
 
-#### Behavioral Assertions
+> **Retired path (2026-10-07, backend #2554, CAP:550).** The legacy `PaymentOutcomeProcessingServiceImpl` was
+> unreachable and has been removed. It was the only implementation of the `InvoicePaymentRecorded` and
+> `InvoicePostingFailed` events, the reconciliation record, the chargeback reversal and the overpayment credit
+> below, so no service implements those assertions today. Payments are applied through `applyPayment`
+> (`PaymentApplicationServiceImpl`). There, an overpayment becomes a customer credit posted Dr 1090 / Cr 2300 in
+> the same transaction, and the CASH walk-in account is refused (`CASH_CUSTOMER_CREDIT_NOT_ALLOWED`). An ArchUnit
+> rule in pos-accounting keeps that the only place a customer credit is created.
+
+#### Current contract
+
+- Payments are applied with `applyPayment` (`PaymentApplicationServiceImpl`). An overpayment becomes a customer
+  credit posted Dr 1090 / Cr 2300 in the same transaction. The CASH walk-in account never receives one
+  (422 `CASH_CUSTOMER_CREDIT_NOT_ALLOWED`).
+
+#### Historical assertions (retired with #2554; not a current contract)
+
+These assertions described the removed `PaymentOutcomeProcessingServiceImpl`. They are kept for history only.
+Do not implement or test against them unless a new story reinstates them.
 
 - Payment outcomes must map deterministically to canonical invoice payment statuses:
   `Paid`, `PartiallyPaid`, `Unpaid`, `Failed`, `Chargeback` using minor-unit arithmetic.
@@ -701,7 +718,8 @@ Headers and auth notes:
 
 #### Contract Test Traceability
 
-- Service tests: `PaymentOutcomeProcessingServiceTest`
+- Service tests: `PaymentApplicationServiceTest` (applications, overpayment credit, CASH guard);
+  `PaymentOutcomeProcessingServiceTest` was removed with the retired path (#2554)
 - Provider tests: `InvoicePaymentContractBehaviorIT`
 
 ### Story #5 — Reconcile POS Status with Accounting Authoritative Status
