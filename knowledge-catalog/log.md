@@ -3,6 +3,8 @@
 ## 2026-10-07
 
 * **Regenerated**: 70 ADR, 16 domain, 47 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
+* **Updated**: `domains/accounting.md` after the accounting workspace specification recorded the 2026-10-07 rulings (AW32–AW35); only its
+  `generated.at` changed, and no other entry was touched.
 
 ## 2026-10-05
 
