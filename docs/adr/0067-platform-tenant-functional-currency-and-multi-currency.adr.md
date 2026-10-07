@@ -179,6 +179,9 @@ assumes USD with no decision behind it. The two need different treatment: the fi
 | USD-pivoted FX | pos-accounting `V1__baseline_accounting.sql`:129-141 (`local_currency_per_usd`, `numeric(12,6)`); `LaborOverheadReportServiceImpl.java`:60, :95-122, :276-290 | The only FX logic assumes USD reporting |
 | Frontend | `FE src/app/app.config.ts`:82-138 has no `LOCALE_ID` or `DEFAULT_CURRENCY_CODE`, and no currency pipe passes a locale; 39 bare currency pipes (render USD); 16 pipes with a literal `'USD'`; 17 fallbacks to `'USD'`; amount inputs with `step="0.01"`; free-text currency inputs prefilled USD; `AccountSummary.homeCurrency` mapped and never shown (`FE src/app/features/platform/models/tenant.models.ts`:55) | Everything renders as en-US USD |
 
+**Stage-A interim (2026-10-07):** pos-order also reads `pos.order.functional-currency`, one required property with no default behind one module
+accessor, until A2 replaces it with the tenant accessor (louisburroughs/durion-positivity-backend#2583). See the Changelog entry of that date.
+
 ### 3.4 Constraints this ADR keeps (EXISTING)
 
 1. **DECISION-PRICING-001** (`domains/pricing/.business-rules/DOMAIN_NOTES.md` l.22-30): money is an amount plus a required currency code, "to avoid implicit
@@ -307,7 +310,8 @@ or nothing. Currency columns are `varchar` of length 3, 8, 16 or 255.
   its own code beside it, for example a functional-currency equivalent in accounting.
 - **R-2** No implicit default in main code: no `'USD'` literal, `DEFAULT 'USD'` column, `@Builder.Default` or `@PrePersist` currency, and no deployment-wide
   property. Where a default is genuinely wanted, such as a quote requested without a currency, it is the tenant's functional currency, read through PC-2's
-  accessor.
+  accessor. **Temporary exception (2026-10-07, ends at A2):** until PC-2's accessor exists, a module may read one required deployment property with no
+  default through one module accessor, stamping the currency on each document; each such property is listed under §3.3 and in the Changelog.
 - **R-3** Codes are validated against the ISO 4217 list (PC-4), not a pattern.
 - **R-4** Currency columns are three characters and `NOT NULL` wherever the row carries money.
 - **R-5** New fields are named `currencyCode`. Existing `currency` and `currencyUomId` names stay, because renaming an event field is a breaking change
@@ -1063,3 +1067,9 @@ its own without option 1 or 2. This questions the memo's order and MC-7's defaul
 - **2026-09-29:** PC-6 ruling recorded by the platform owner: (a) stands as accepted on 2026-09-28, and an amount with more decimals than its currency allows is
   refused with 422 `AMOUNT_PRECISION_EXCEEDS_CURRENCY`, never rounded; trailing zeros do not count and `fieldErrors` names each offending amount. First applied
   in pos-accounting bank reconciliation (#2305).
+- **2026-10-07:** Stage-A interim recorded (CAP:550 S16, louisburroughs/durion-positivity-backend#2569). Until A1/A2 deliver the tenant's functional
+  currency (PC-2), a module that must state `currencyCode` (R-1) may read one deployment property through one module accessor, as pos-accounting's
+  `LedgerCurrency` does over `accounting.ledger.base-currency` (§8 row A). This is a temporary exception to R-2 (stated in R-2): the property has
+  no default, the service fails at startup when it is unset, and a document stamps the currency it was created in. First case: pos-order
+  `pos.order.functional-currency`, stamped on each register session at open;
+  noted under §3.3 and removed in A2 (louisburroughs/durion-positivity-backend#2583). No new interim property without a Changelog entry here.
