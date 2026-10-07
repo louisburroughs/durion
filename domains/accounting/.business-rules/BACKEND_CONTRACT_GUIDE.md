@@ -664,6 +664,14 @@ Headers and auth notes:
 
 ### Story #6 — Update Invoice Payment Status from Payment Outcomes
 
+> **Retired path (2026-10-07, backend #2554, CAP:550).** The legacy `PaymentOutcomeProcessingServiceImpl` was
+> unreachable and has been removed. It was the only implementation of the `InvoicePaymentRecorded` and
+> `InvoicePostingFailed` events, the reconciliation record, the chargeback reversal and the overpayment credit
+> below, so no service implements those assertions today. Payments are applied through `applyPayment`
+> (`PaymentApplicationServiceImpl`). There, an overpayment becomes a customer credit posted Dr 1090 / Cr 2300 in
+> the same transaction, and the CASH walk-in account is refused (`CASH_CUSTOMER_CREDIT_NOT_ALLOWED`). An ArchUnit
+> rule in pos-accounting keeps that the only place a customer credit is created.
+
 #### Behavioral Assertions
 
 - Payment outcomes must map deterministically to canonical invoice payment statuses:
@@ -701,7 +709,8 @@ Headers and auth notes:
 
 #### Contract Test Traceability
 
-- Service tests: `PaymentOutcomeProcessingServiceTest`
+- Service tests: `PaymentApplicationServiceTest` (applications, overpayment credit, CASH guard);
+  `PaymentOutcomeProcessingServiceTest` was removed with the retired path (#2554)
 - Provider tests: `InvoicePaymentContractBehaviorIT`
 
 ### Story #5 — Reconcile POS Status with Accounting Authoritative Status
