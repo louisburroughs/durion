@@ -60,6 +60,7 @@ Frontend developer workflow:
 | Capability | Parent Issue | Contract Status | Primary Scope |
 | --- | --- | --- | --- |
 | CAP-246 | [#246](https://github.com/louisburroughs/durion/issues/246) | draft | POS Sales Order & Cart (Quote-to-Cash Entry Point) |
+| CAP-550 | [#550](https://github.com/louisburroughs/durion/issues/550) | draft | Register session facts (S40; `order.session.opened`, `order.session.closed` v2) |
 
 ## Frontend API Lookup
 
@@ -270,9 +271,9 @@ Rules:
   when the register's float is held at another location, 403 `LOCATION_SCOPE_DENIED`.
 - Start republish: pos-order re-emits `order.session.opened` for every OPEN or CLOSING session of every tenant (ADR-0062
   `TenantIterator`, one transaction per tenant) at the session's current version, and never for a CLOSED session (ADR-0044 §4
-  backfill). `pos.order.session.bootstrap-republish.enabled` (default `true`) turns it off.
+  backfill). `pos.order.session.bootstrap-republish.enabled` defaults to `true` (republish on); set it to `false` to turn it off.
 - Consumer: pos-accounting keeps the `ext_order_register_session` replica and refuses to relocate a register (`registerId` =
-  `terminalId`, AW31) while its latest-opened session is active (OI-15; ADR-0044 R1: no synchronous call to pos-order). It
+  `terminalId`, AW31) while its latest-opened session is active (AW36, OI-15; ADR-0044 R1: no synchronous call to pos-order). It
   applies equal versions, and a closed fact always closes the session whatever the order of arrival.
 
 ## Verification Metadata
@@ -281,7 +282,7 @@ Rules:
 - OpenAPI source revision: `1aa6083` (price-override endpoints; transmission-events/supplier-availability added #1637/#1638;
   cart and cancel endpoints pending issues #21 and #19)
 - Last verified UTC: `2026-09-06T00:00:00Z`
-- Last capability update: CAP-246 (stories #19, #20, #21)
+- Last capability update: CAP-550 (S40, louisburroughs/durion-positivity-backend#2578; 2026-10-07)
 - Generated API reference: `domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
