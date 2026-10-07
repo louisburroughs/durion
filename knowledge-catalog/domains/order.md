@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/order
 path: durion/domains/order/
 tags: [domain, order]
 sources: [domains/order/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-07T09:55:51-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-07T14:06:19-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/order) — `domains/order/` (13 documents)
