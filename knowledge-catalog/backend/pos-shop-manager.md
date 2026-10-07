@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-shop-manager/
 tags: [backend, service, shopmgmt]
 sources: [durion-positivity-backend/pos-shop-manager/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T03:57:44-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-06T12:01:49-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shop-manager) — `pos-shop-manager/`

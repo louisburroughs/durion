@@ -7,7 +7,7 @@ path: durion/docs/adr/0049-supplier-integration-module-boundary.adr.md
 tags: [adr, events, supplier]
 status: stable
 sources: [docs/adr/0049-supplier-integration-module-boundary.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T07:26:39-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T14:05:32-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0049-supplier-integration-module-boundary.adr.md) — `docs/adr/0049-supplier-integration-module-boundary.adr.md`
