@@ -241,9 +241,10 @@ matching its posting-rules design.
 
 - R6.1 Entities: `RegisterSession` (terminalId, locationId, openedByClerkId, status `OPEN → CLOSING → CLOSED`, openingFloat, countedClosingCash, theoreticalClosingCash,
   overShortAmount, openedAt/closedAt) and `CashMovement` (session, type `PAID_IN | PAID_OUT`, amount, reason, clerkId — permission-gated, Odoo `try_cash_in_out` analog).
-- R6.2 Invariants: at most one OPEN session per terminalId (DB partial unique index); orders created while a session is open carry `sessionId`; closing blocked while the
+- R6.2 Invariants: at most one active (OPEN or CLOSING) session per terminalId (DB partial unique index `status <> 'CLOSED'`); a session's
+  location never changes; orders created while a session is open carry `sessionId`; closing blocked while the
   session has orders in `PENDING_PAYMENT` (Odoo blocks on drafts; PENDING_PAYMENT is our sharper guard — drafts may park across sessions, decide in planning); opening float
-  defaults from the terminal's previous counted close.
+  is the register's configured float (accounting AW16, superseding the previous-counted-close default); a register never moves while active (accounting AW36).
 - R6.3 Theoretical cash = openingFloat + Σ session cash-payment records (from §4.2 read-model) + Σ cash movements; over/short = counted − theoretical; an
   `authorizedDifferenceLimit` config requires manager approval (`order:session:approve_variance`) beyond it.
 - R6.4 Session close emits a `register-session.closed` event (totals by tender type, over/short, movements) for pos-accounting to post (over/short → configured loss/profit
