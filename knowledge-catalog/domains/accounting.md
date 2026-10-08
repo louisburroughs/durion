@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/accountin
 path: durion/domains/accounting/
 tags: [domain, accounting]
 sources: [domains/accounting/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T13:18:10Z'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T11:00:01-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/accounting) — `domains/accounting/` (81 documents)
