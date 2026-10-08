@@ -121,6 +121,18 @@ Headers and auth notes:
   pos-invoice no longer simulates GL posting in-process. A `FINALIZED → DRAFT` revert (within the
   finalization revert window enforced by `InvoiceFinalizationService`, before the posted fact arrives) is
   reversed by accounting on the `DRAFT` update.
+- `InvoiceUpdatedV1.taxBreakdown[]` (`TaxBreakdownLine`) gains **`taxType`** (CAP:550 S32a, backend#2636,
+  backend PR #2640): a nullable String, the last record component, carrying the tax-type code of the tax
+  row exactly as pos-tax priced it (e.g. `GST`). Tax types are a configuration-only vocabulary declared per
+  country in pos-tax (`pos.tax.countries.<country>.tax-types`); there is no enum, and a code is 1–32
+  upper-case letters, digits or underscores. The code is copied, never inferred: `null` for an untyped row
+  (every US row, and a malformed value). Additive within schema version 1 on `invoice.events.v1`, no version
+  bump, no dual-publish (ADR-0044 §3); a consumer built before the field ignores it. Persisted in
+  `invoice_line_tax.tax_type` and `invoice_tax_summary.tax_type` (`varchar(32) NULL`, pos-invoice V4); the
+  summary rollup key is `jurisdictionType|jurisdictionCode|taxType`, so two tax types sharing a jurisdiction
+  are never merged. Written only by the DRAFT re-price path and frozen at finalization (BILL-DEC-004); no
+  backfill, existing rows stay null. The `tax == Σ taxBreakdown.taxAmount` invariant and the
+  empty-versus-null contract (#982) are unchanged. No invoice or receipt endpoint, DTO or SDK changes.
 
 ### Contract Test Traceability
 
