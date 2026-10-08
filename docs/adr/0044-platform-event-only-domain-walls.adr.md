@@ -10,7 +10,8 @@ tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-10-05 (extraction worker and inbound-mail edge join the Utility class, [ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md));
+**Status:** ACCEPTED — amended 2026-10-08 (in-place withdrawal of a RESTRICTED field, [ADR-0072](0072-data-classification-event-payload-minimisation.adr.md));
+previously amended 2026-10-05 (extraction worker and inbound-mail edge join the Utility class, [ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md));
 previously amended 2026-10-03 (pos-marketing → pos-platform-sender FI-2 send, file-scoped), 2026-10-02 (consumer rethrow set, durion-positivity-backend#2355),
 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146),
 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)),
@@ -109,8 +110,8 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
 - Identifiers in payloads are UUID-typed per [ADR-0027](0027-uuid-typed-id-contract-policy.adr.md); `eventId` is UUIDv7 per
   [ADR-0013](0013-platform-uuid-identifier-strategy.adr.md).
 - Payload changes within a version MUST be additive-only. Breaking changes require a new topic version (`.v2`), with the owner dual-publishing during the migration window.
-  *Amended by [ADR-0072](0072-data-classification-event-payload-minimisation.adr.md) Decision 7, pending acceptance of ADR-0072: a RESTRICTED field may be
-  withdrawn in place when no consumer reads it (see §Amendments).*
+  *Amended 2026-10-08 by [ADR-0072](0072-data-classification-event-payload-minimisation.adr.md) Decision 7: a RESTRICTED field may be withdrawn in place
+  when no consumer reads it (see §Amendments).*
 - `aggregateVersion` is a monotonic per-aggregate sequence; consumers use it to detect gaps and to ignore out-of-date updates.
 
 ### 4. Reliability mechanisms (mandatory before a module migrates)
@@ -199,11 +200,12 @@ approved by ADR amendment.
 
 ## Amendments
 
-### Pending acceptance of ADR-0072 — withdrawing a RESTRICTED field in place ([ADR-0072](0072-data-classification-event-payload-minimisation.adr.md))
+### 2026-10-08 — Withdrawing a RESTRICTED field in place ([ADR-0072](0072-data-classification-event-payload-minimisation.adr.md))
 
-Not in force until ADR-0072 is ACCEPTED. §3's additive-only rule gains one exception: a RESTRICTED field may be withdrawn from a live payload on the same
-`eventType` and topic, with no `.v2` topic and no dual-publish, only when no consumer reads it, `schemaVersion` is bumped, the owner's outbox is scrubbed in
-the same release and consumers apply only the new version (ADR-0072 Decision 7).
+§3's additive-only rule gains one exception: a RESTRICTED field may be withdrawn from a live payload on the same `eventType` and topic, with no `.v2`
+topic and no dual-publish, only when no consumer reads it, `schemaVersion` is bumped, the owner's outbox is scrubbed in the same release and consumers
+apply only the new version. The rollout stops old publishers before the scrub, and the broker purge deletes only up to fixed per-partition cutoffs after
+a separate DLQ inventory (ADR-0072 Decision 7).
 
 ### 2026-10-08 — pos-tax owns tenant tax-profile data and publishes registrations ([ADR-0071](0071-tax-per-tenant-pluggable-providers.adr.md))
 
