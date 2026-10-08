@@ -130,7 +130,8 @@ Headers and auth notes:
   bump, no dual-publish (ADR-0044 §3); a consumer built before the field ignores it. Persisted in
   `invoice_line_tax.tax_type` and `invoice_tax_summary.tax_type` (`varchar(32) NULL`, pos-invoice V4); the
   summary rollup key is `jurisdictionType|jurisdictionCode|taxType`, so two tax types sharing a jurisdiction
-  are never merged. Written only by the DRAFT re-price path and frozen at finalization (BILL-DEC-004); no
+  are never merged. Written only by the DRAFT re-price path; a finalized invoice is never re-priced (the existing
+  finalized-state guard, backend#2636 AC 9), so the value freezes with the tax rows; no
   backfill, existing rows stay null. The `tax == Σ taxBreakdown.taxAmount` invariant and the
   empty-versus-null contract (#982) are unchanged. No invoice or receipt endpoint, DTO or SDK changes.
 
