@@ -5,7 +5,7 @@ description: Keeps pos-tax as the one internal tax port, which picks a provider 
 status: stable
 adr_status: accepted
 created: '2026-10-08'
-related: [ADR-0014, ADR-0018, ADR-0021, ADR-0044, ADR-0062, ADR-0067]
+related: [ADR-0014, ADR-0017, ADR-0018, ADR-0021, ADR-0044, ADR-0062, ADR-0067]
 tags: [adr, accounting, multitenancy]
 ---
 # ADR-0071: Per-Tenant Pluggable Tax Providers Behind pos-tax, Reached Through Front Doors
@@ -78,7 +78,9 @@ capabilities it supports (rate lookup, the AW57 Canadian stubs such as plausibil
 | others (`EY`, …) | Added the same way when a provider is chosen |
 
 A plug-in may call a remote service — a vendor API or a separately deployed adapter — behind the seam; that stays an implementation detail of the plug-in.
-A capability the bound plug-in lacks answers 501 naming it (today `TAX_RATE_LOOKUP_UNSUPPORTED`).
+A capability the bound plug-in lacks is refused with 422 `TAX_CAPABILITY_UNSUPPORTED` naming it: the request is well formed and the tenant's
+configuration refuses it (ADR-0017 §2). `501` stays reserved for documented stub endpoints (ADR-0017 §1), so today's 501 `TAX_RATE_LOOKUP_UNSUPPORTED`
+moves to this code when the binding lands.
 
 ### 3. Binding by tenant and country
 
@@ -110,7 +112,9 @@ person starts reaches it through the external-facing domain module that owns the
 | Provider bindings | pos-tenant (platform-tenant callers only, ADR-0062 §7) | `platform:tenant_tax_provider:manage` |
 
 - The front door checks the person's permission, validates, then calls pos-tax synchronously (ADR-0044 R2: pos-tax remains a utility), forwarding the actor
-  for pos-tax's audit rows (ADR-0018).
+  for pos-tax's audit rows. The actor travels only in the `X-User-Id` header the front door itself received from the gateway, never in a request body;
+  pos-tax trusts it only on a request authenticated as that front door (Decision 6) and binds it as the request's principal, so ADR-0018's
+  service-layer rule applies unchanged and any actor field in a body is ignored.
 - Reads for screens come from the front door: its own replica where one exists (registrations, Decision 7), otherwise a synchronous read of pos-tax.
 - **Service-to-service tax operations stay direct**: calculate, refund, commit, void, rate lookup and plausibility, from the allowlisted callers (pos-order,
   pos-workorder, pos-invoice, pos-mcp-server, pos-accounting). Routing them through pos-accounting would make checkout depend on accounting and break
@@ -119,8 +123,8 @@ person starts reaches it through the external-facing domain module that owns the
 ### 6. Write endpoints accept only their front door
 
 **Decision:** ✅ **Resolved** — pos-tax's write endpoints for registrations, exemption certificates and bindings each accept exactly one caller, its front
-door, authenticated by a per-caller shared secret (the pos-platform-sender pattern) until a platform service identity replaces it; a blank secret refuses
-every request. No human role is granted `tax:*` write permissions; the person's permission lives at the front door. The computation endpoints keep today's
+door, authenticated by a per-caller shared secret (the pos-platform-sender pattern) until a platform service identity replaces it. A missing or wrong secret
+answers 401, and a blank configured secret refuses every request (ADR-0017 §1). No human role is granted `tax:*` write permissions; the person's permission lives at the front door. The computation endpoints keep today's
 authorization.
 
 ### 7. Registrations belong to pos-tax and travel by outbox
@@ -165,7 +169,7 @@ bindings publish nothing until a consumer needs them.
 
 - pos-tax becomes stateful and a Kafka producer: an outbox, a topic, a manifest and re-sends to run (mitigated by ADR-0044 §4's standard mechanisms).
 - Three front doors to build and three per-caller secrets to manage.
-- Plug-ins must declare capabilities, and callers must handle a 501 for a capability their tenant's plug-in lacks.
+- Plug-ins must declare capabilities, and callers must handle a 422 `TAX_CAPABILITY_UNSUPPORTED` for a capability their tenant's plug-in lacks.
 
 ### Neutral
 
@@ -179,7 +183,8 @@ bindings publish nothing until a consumer needs them.
 - **Order:** (1) the binding table and resolver with `US_SELF` as the US default, which changes nothing for existing tenants; (2) `CA_SELF` and the AW57
   stubs (S31); (3) registrations with the outbox, the manifest and the pos-accounting front door (S31, S32), and the registration panel posting to
   pos-accounting (S33); (4) the pos-customer and pos-tenant front doors (no story yet; specification OI-23).
-- **Error codes:** 422 `TAX_JURISDICTION_NOT_CONFIGURED`; 409 `TAX_REGISTRATION_OVERLAP` (relayed by the front door); 501 per missing capability.
+- **Error codes:** 422 `TAX_JURISDICTION_NOT_CONFIGURED`; 422 `TAX_CAPABILITY_UNSUPPORTED` (replacing 501 `TAX_RATE_LOOKUP_UNSUPPORTED`); 409
+  `TAX_REGISTRATION_OVERLAP` (relayed by the front door); 401 for a write without its front door's secret.
 - **Testing:** resolver unit tests (binding, default, none); a contract test that a US request returns the same JSON under `US_SELF` as under today's test
   mode; `TenantIsolationIT` for bindings and registrations; outbox and manifest tests per ADR-0044 §4; a security test that each write endpoint refuses
   every caller but its front door.
@@ -199,7 +204,7 @@ No change: ADR-0014 (pos-tax still has no route), ADR-0062 (the new tables are t
 ## References
 
 - **Related Issues:** louisburroughs/durion#553; louisburroughs/durion-positivity-backend#2522, #2523
-- **Related ADRs:** [ADR-0014](0014-gateway-internal-service-security.adr.md), [ADR-0018](0018-audit-actor-fields-from-security-context.adr.md),
+- **Related ADRs:** [ADR-0014](0014-gateway-internal-service-security.adr.md), [ADR-0017](0017-api-controller-http-response-codes.adr.md), [ADR-0018](0018-audit-actor-fields-from-security-context.adr.md),
   [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md), [ADR-0044](0044-platform-event-only-domain-walls.adr.md),
   [ADR-0062](0062-postgres-row-level-multitenancy.adr.md), [ADR-0067](0067-platform-tenant-functional-currency-and-multi-currency.adr.md)
 - **Related Documentation:** [SPEC-accounting-workspace.md](../../domains/accounting/SPEC-accounting-workspace.md) §4.7, §7.1, §7.3, §10 (AW48, AW57–AW59);

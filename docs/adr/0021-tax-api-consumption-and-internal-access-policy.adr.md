@@ -140,7 +140,8 @@ public APIs. The Platform Owner accepted the resulting rules on 2026-10-08. They
 
 - **Front doors.** Every operation a person starts reaches pos-tax through the external-facing domain module that owns the person's permission:
   registrations through pos-accounting, exemption certificates through pos-customer, provider bindings through pos-tenant (ADR-0071 §5). The front door
-  checks the permission and calls pos-tax under ADR-0044 R2, forwarding the actor (ADR-0018). There is no `@durion-sdk/tax` package and no frontend
+  checks the permission and calls pos-tax under ADR-0044 R2, forwarding the actor in the gateway's `X-User-Id` header, never in a body
+  (ADR-0018; ADR-0071 §5). There is no `@durion-sdk/tax` package and no frontend
   caller.
 - **Caller allowlist (§3 item 2).** Computation — calculate, refund, commit, void, rate lookup, plausibility — is called directly by pos-order,
   pos-workorder, pos-invoice, pos-mcp-server and pos-accounting. Each write endpoint (registrations, exemption certificates, bindings) accepts only its front
