@@ -5,6 +5,9 @@
 * **Regenerated**: 71 ADR, 16 domain, 47 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
 * **Added**: `adr/0071-tax-per-tenant-pluggable-providers.md` for the accepted ADR-0071; `adr/index.md` and the root index count it.
   `adr/0021` takes ADR-0021's corrected description (its 2026-10-08 amendment), and `adr/0044` and `backend/pos-tax.md` are restamped.
+* **Updated**: `adr/0070-bill-intake-ownership-and-vendor-master.md` and `domains/accounting.md` restamped for ADR-0070's 2026-10-08
+  Decision 5 amendment and the accounting workspace specification's AW60–AW66 (the extraction provider, louisburroughs/durion#549). Only these
+  entries were regenerated; other entries' timestamp drift is left for a full regeneration.
 
 ## 2026-10-07
 

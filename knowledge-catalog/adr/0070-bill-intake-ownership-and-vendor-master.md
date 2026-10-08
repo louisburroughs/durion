@@ -7,7 +7,7 @@ path: durion/docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md
 tags: [adr, accounting, billing, positivity, supplier, events, security, rbac]
 status: stable
 sources: [docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T14:29:57-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T13:32:15+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md) — `docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md`
