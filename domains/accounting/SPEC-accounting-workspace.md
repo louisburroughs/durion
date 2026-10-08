@@ -24,7 +24,8 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > rounds, at the platform owner's request (AW22–AW29); the platform owner then placed the vendor master in pos-supplier (AW23). On 2026-10-07 the Accounting
 > Domain Agent ruled AW32–AW35 at the platform owner's request: moving a register's float, AP default terms, the safety cushion and opening bank balances;
 > AW36 records the platform owner's and Order's no-move-during-an-open-session rule. Also on 2026-10-07, at the platform owner's request, the Accounting
-> Domain Agent ruled AW37–AW43 on when and how vendor bills and AP payments post (OI-2, OI-3; louisburroughs/durion#551).
+> Domain Agent ruled AW37–AW43 on when and how vendor bills and AP payments post (OI-2, OI-3; louisburroughs/durion#551); AW44 records the platform
+> owner's stub decision on US purchase tax (OI-19).
 > Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
@@ -273,7 +274,16 @@ louisburroughs/durion-positivity-backend#2603).
   | Tax as stated, never recalculated | US: part of the cost — into the line's expense, or 5050 for goods; never 2200, 1300 or 2100. Header-only tax on a mixed bill is prorated by line net, the residual cent on the largest line. CAD: AW20 (S32) |
 
   The credit is Cr 2000 for the billed gross. A credit note posts the mirror, Dr 2000 / Cr by class: `EXPENSE` its key, `PRICE_ALLOWANCE` 5050,
-  `GOODS_RETURNED` 2100 once Inventory publishes a costed return (OI-20; until then a return uses `PRICE_ALLOWANCE`). Use tax and tax on resale goods: OI-19.
+  `GOODS_RETURNED` 2100 once Inventory publishes a costed return (OI-20; until then a return uses `PRICE_ALLOWANCE`).
+- **US purchase tax stubs (AW44, OI-19; S43, louisburroughs/durion-positivity-backend#2604).** A prototype stub, refined once a US accountant has been
+  consulted. *Tax on resale goods:* stated tax on a `RECEIPT_MATCHED` or `GOODS` line usually means the vendor has misclassified the shop, so approve and
+  `ACCEPT` refuse the bill (422 `AP_BILL_TAX_ON_RESALE_GOODS`) and automatic approval leaves it `AWAITING_APPROVAL` — unless the approver gives a
+  `taxOnResaleOverrideJustification` (≥ 10 characters) for that bill, or the vendor's AP setting `acceptTaxOnResaleGoods` is on (written with
+  `accounting:ap_approval_policy:manage`, audited; it needs S24's vendor settings, so until S24 lands the per-bill override is the only one). The bill
+  read reports the check `TAX_ON_RESALE_GOODS`. An overridden bill posts as above, the tax in 5050. *Use tax:* each `EXPENSE` line of a bill (never a
+  credit note) with no stated tax accrues use tax from pos-tax (`USE`, priced like a sale; the stub always returns a rate) in the approval entry: Dr the
+  line's expense key / Cr **2240 Use Tax Payable** (`VENDOR_BILL` key `USE_TAX_PAYABLE`), mirrored by a void. Goods for resale accrue none. US tenants
+  only.
 - **Matching keeps what was billed.** `/match` and candidate selection set the bill's total to the vendor's billed total and keep the billed quantity and price
   of each line; EDI bills keep the stated net and tax (none stated: net = gross, tax 0).
 - **Dates and refusals (AW42).** A bill posts on its bill date when that date is on or before the approval date and its period is OPEN, otherwise on the
@@ -774,6 +784,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Real due date during review | `PUT /v1/accounting/vendor-bills/{id}/due-date` · `accounting:ap:approve` | audited; replaces the estimate |
 | System approver | recorded on automatic approvals | identity and the automatic limit in force |
 | Bill GL posting at approval | In the approve, `ACCEPT` and system-approval transaction; category `VENDOR_BILL` (AW37–AW40; S12, backend #2509) | §4.3 "Posting"; a refusal rolls back (422 `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; mapping: #2601); the read serves `postingDate`, `postingDateRule`, the entry's reference; old `VENDOR_BILL_GL_POSTING` events closed, never retried |
+| US purchase tax stubs | approve and `ACCEPT` bodies gain `taxOnResaleOverrideJustification`; AP vendor setting `acceptTaxOnResaleGoods` · `accounting:ap_approval_policy:manage` (AW44; S43, louisburroughs/durion-positivity-backend#2604) | §4.3; 422 `AP_BILL_TAX_ON_RESALE_GOODS`; the bill read reports the check `TAX_ON_RESALE_GOODS`; use tax accrued to 2240 at approval from pos-tax `USE`, bills only (no credit notes) |
 | Void an approved bill | `POST /v1/accounting/vendor-bills/{id}/void` · `accounting:ap:reject` and the approval tier | AW42; nothing allocated, else 409 `AP_BILL_NOT_VOIDABLE`; reason ≥ 10 characters; mirror entry dated on the void date |
 | Goods-receipt accrual | Listener on `goodsreceipt.recorded` (S41, louisburroughs/durion-positivity-backend#2602) | AW38; Dr 1300 / Cr 2100 / Dr or Cr 5050, dated `occurredAt`; key `GOODS_RECEIPT_ACCRUAL:<receiptId>`; a missing or foreign currency is parked |
 | AP payment posting | EXISTING `POST /v1/accounting/ap/payments` gains `bankAccountId`, loses `netAmount`; `POST …/{paymentId}/gl-posting-retry` · `accounting:je:post` (S42, louisburroughs/durion-positivity-backend#2603) | AW41; category `AP_PAYMENT`; refused before the gateway: 422 `AP_PAYMENT_METHOD_NOT_SUPPORTED`, `CURRENCY_NOT_SUPPORTED`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED` |
@@ -790,6 +801,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Petty-expense categories | EXISTING mapping-key and gl-mapping endpoints under `REGISTER_CASH_MOVEMENT` | publishes `accounting.petty-expense-category.changed` |
 | Estimated due dates | in cash outlook and aged AP | never stored; terms from the purchase order, then the vendor's default, then `AP_DEFAULT_TERMS`, named by `termsSource` (AW33; S19, louisburroughs/durion-positivity-backend#2515) |
 | Seed | accounts 1080, 3000, 3900, 6295, 6375, 6380 (AW30); renumbering (§4.6); retread add-on per tenant; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`, `OPENING_BALANCE`; settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION` | repeatable seeds |
+| Seed (AW44) | Account 2240 Use Tax Payable (LIABILITY) and the `VENDOR_BILL` key `USE_TAX_PAYABLE` | Repeatable seed; S37 provisions every tenant |
 | Seed (AW38–AW41) | Accounts 2100, 5050, 5060, with statement lines `BS_DELIVERIES_NOT_BILLED` ("Deliveries not yet billed") and `IS_COST_OF_PARTS_SOLD`; categories `GOODS_RECEIPT`, `VENDOR_BILL`, `AP_PAYMENT` with their keys and mappings (AW40); no posting-rule versions | Repeatable seed; S37 provisions every tenant |
 | Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path; `APPROVED → VOIDED` (AW42) | DB check constraint |
 | Permissions | register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject`; new `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage` | registry + security catalog |
@@ -818,6 +830,8 @@ location, never the float row's.
 - `pos-accounting` permission registry: register `accounting:payment:assign-customer` (AD-004); move `accounting:period:override` into `AccountingPermissions` and
   its registration; register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject` (G13).
 - `pos-tax` (CAD): Canadian rates and registrations; plausibility lookup.
+- `pos-tax` (AW44): `TaxCalculationType` gains `USE` (consumer use tax), priced by `/v1/tax/calculate` exactly like `SALE`; test mode's flat rates always
+  answer (S43).
 - `pos-supplier`: additive fields on `SupplierInvoiceReceivedV1` — `channel` (ADR-0051 protocol-family values), `exchangeId` (provenance only: pos-accounting
   never calls pos-supplier to resolve it, ADR-0044 R1), due date or terms, and tax by type (CAD: split the EDI tax total). All nullable; a missing value
   means today's behaviour (ADR-0044 §3); `vendorId` is always set from now on. The exchange audit keeps its own 400-day policy (ADR-0050) outside the bill
@@ -967,6 +981,8 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 - `ACCEPT` over the limit returns `AP_APPROVAL_LIMIT_EXCEEDED` for a clerk; automatic approval never exceeds the automatic limit (default 0 → every bill to a
   person).
 - Paying a bill one approved returns `AP_PAYMENT_SELF_APPROVED_BILL`.
+- A US bill with stated tax on a goods line is refused with `AP_BILL_TAX_ON_RESALE_GOODS` until the approver gives a justification or the vendor's
+  `acceptTaxOnResaleGoods` is on; an untaxed `EXPENSE` line credits 2240 with pos-tax's use tax (AW44).
 - Read-back fields marked "Check this" block confirmation until accepted or corrected (422 `BILL_INTAKE_FIELDS_UNCHECKED`).
 - A second bill with the same vendor, normalised number and date is refused with `AP_BILL_DUPLICATE` and a link to the original, whichever channel brought
   either copy (upload + EDI, import + upload); after the original is voided the re-issue is accepted.
@@ -1074,11 +1090,12 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW36 | No register move while its session is OPEN or CLOSING. pos-order publishes `order.session.opened`; pos-accounting refuses a relocation from a session replica (422 `FLOAT_REGISTER_SESSION_OPEN`); pos-order refuses an open at a location other than the float's (422 `REGISTER_FLOAT_LOCATION_MISMATCH`) | Platform owner; Order Domain Agent (2026-10-07; OI-15) | §4.6; S16, S38, S40 |
 | AW37 | A vendor bill or credit note posts once, at approval (a person's, `ACCEPT` or the system's), whatever its channel; nothing posts before; goods-receipt bills stop posting at creation; approval and posting share one transaction. 2000 = approved open amounts − unapplied AP payments | Accounting Domain Agent (2026-10-07; OI-2, louisburroughs/durion#551) | §4.3; S12, S13 |
 | AW38 | A goods receipt posts its own accrual from `goodsreceipt.recorded`: Dr 1300 at inventory's cost / Cr new 2100 Goods Received Not Yet Billed / Dr or Cr new 5050 Purchase Price Differences; a bill never debits 1300 and a bill decision never reverses a receipt | Accounting Domain Agent (2026-10-07; OI-2) | §4.3, §7.1, §7.3; S41 |
-| AW39 | Bill lines by class: `RECEIPT_MATCHED` clears 2100 at receipt price with the difference in 5050; `GOODS` debits 2100; `EXPENSE` a `VENDOR_BILL` `EXPENSE_<CODE>` key; freight new 5060; US tax as stated into the cost; credit notes mirror by class | Accounting Domain Agent (2026-10-07; OI-2). US purchase tax: platform owner (OI-19) | §4.3; S12, S24, S25, S32 |
+| AW39 | Bill lines by class: `RECEIPT_MATCHED` clears 2100 at receipt price with the difference in 5050; `GOODS` debits 2100; `EXPENSE` a `VENDOR_BILL` `EXPENSE_<CODE>` key; freight new 5060; US tax as stated into the cost; credit notes mirror by class | Accounting Domain Agent (2026-10-07; OI-2). US purchase tax: platform owner (OI-19, AW44) | §4.3; S12, S24, S25, S32 |
 | AW40 | Bills, receipts and AP payments post through categories `VENDOR_BILL`, `GOODS_RECEIPT`, `AP_PAYMENT` with seeded keys and mappings, except an AP payment's bank credit (its selected `BANK_CASH` account); tenants remap by effective-dated GL mapping; no rule versions; both old event types retired, old events closed | Accounting Domain Agent (2026-10-07; OI-3) | §7.1; S12, S37, S41, S42 |
 | AW41 | AP payment: Dr 2000 / Dr 6030 fee / Cr the chosen `BANK_CASH` account, on the execution date; checks before the gateway; `CREDIT_CARD` and `OTHER` refused (OI-17); allocations post nothing; cash on delivery credits 1095 and its `CASH` payment posts nothing more | Accounting Domain Agent (2026-10-07; OI-3) | §4.3, §4.6, §7.1; S17, S42 |
 | AW42 | A bill posts on its bill date when that period is open, else on the approval date; a period or mapping refusal rolls the approval back; an approved bill with nothing allocated may be voided, its mirror dated on the void date, never in the original period | Accounting Domain Agent (2026-10-07; OI-2). Refusal status: Chief Architect (#2601) | §4.3, §7.1; S12, S13, S14 |
 | AW43 | Foreign-currency bills (`CURRENCY_HOLD`) never post; a foreign-currency AP payment is refused and a receipt fact without a functional currency is parked; never at par | Accounting Domain Agent (2026-10-07), applying ADR-0067 PC-9 (a), PC-13 (a) | §4.3; S41, S42 |
+| AW44 | US purchase tax, stubbed: stated tax on resale goods holds a bill from approval unless overridden for that bill (justification) or permanently for the vendor (`acceptTaxOnResaleGoods`); untaxed `EXPENSE` lines of a bill (not a credit note) accrue use tax from pos-tax (`USE`) to new 2240 Use Tax Payable at approval; per-state rules wait for research | Platform owner (2026-10-07; OI-19, louisburroughs/durion-positivity-backend#2599) | §4.3, §7.1, §7.3; S43 |
 
 ---
 
@@ -1120,6 +1137,7 @@ binds only the default tenant today). S36 makes pos-inventory name pos-supplier 
 | S14 | 3 | Bills to pay (EDI and goods-receipt bills) and the Bills section of Approval limits | louisburroughs/durion-positivity-frontend#464 |
 | S41 | 3 | Goods receipts post to inventory and GRNI from goodsreceipt.recorded (AW38) | louisburroughs/durion-positivity-backend#2602 |
 | S42 | 3 | AP payments post through AP_PAYMENT: bank account, fee, period and currency checks (AW40, AW41) | louisburroughs/durion-positivity-backend#2603 |
+| S43 | 3 | US purchase tax stubs: hold bills taxed on resale goods, accrue use tax to 2240 (AW44) | louisburroughs/durion-positivity-backend#2604 |
 | S15 | 4 | Chart of accounts, float and petty-expense categories | louisburroughs/durion-positivity-backend#2511 |
 | S16 | 4 | Drawer movements: fixed reasons, session policy (allowed / amount), elevation and the close fact v2 | louisburroughs/durion-positivity-backend#2512 |
 | S17 | 4 | Drawer movements post to the ledger; vendor cash on delivery becomes an AP payment | louisburroughs/durion-positivity-backend#2513 |
@@ -1146,7 +1164,9 @@ binds only the default tenant today). S36 makes pos-inventory name pos-supplier 
 
 S38 and S39 were added on 2026-10-07 from the AW32 and AW35 rulings. The AW33 terms order is carried by S13 and S19 (comments on
 louisburroughs/durion-positivity-backend#2510 and #2515). S41 and S42 were added on 2026-10-07 from the AW38 and AW41 rulings; AW37–AW43 amend S12, S13,
-S17, S19, S24, S25, S32, S37 (backend) and S14, S21 (frontend) by comments on their issues.
+S17, S19, S24, S25, S32, S37 (backend) and S14, S21 (frontend) by comments on their issues. S43 was added on 2026-10-07 from AW44; it follows S12, and
+its per-vendor setting `acceptTaxOnResaleGoods` waits for S24 (phase 5), the per-bill override standing alone until then. S14 still needs an amendment
+to show the hold and the override.
 
 Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553 · extraction
 provider louisburroughs/durion#549.
@@ -1175,7 +1195,7 @@ provider louisburroughs/durion#549.
 | OI-16 | **Resolved 2026-10-07:** `SUPPORT` keeps `supplier:vendor:read`, read-only and never bank or payment data (platform owner; louisburroughs/durion-positivity-backend#2575) | Security + Positivity (Integrations) |
 | OI-17 | Funding account for AP payments by `CREDIT_CARD` and `OTHER` (a card liability account and its reconciliation); refused until decided (AW41) | Accounting Domain Agent (asks the owner) |
 | OI-18 | Clearing old 2100 residuals (quantity and price differences no bill or receipt will clear): a guided command and its N-day threshold; until then a journal entry to 5050 with a justification | Accounting Domain Agent |
-| OI-19 | Sales tax charged on goods bought for resale, and use tax on untaxed purchases (US); interim: stated tax is cost, no use-tax accrual (AW39; louisburroughs/durion-positivity-backend#2599) | Platform owner with a US accountant |
+| OI-19 | **Resolved 2026-10-07 as a stub (AW44):** tax on resale goods holds the bill unless overridden per bill or per vendor; use tax from a pos-tax `USE` stub accrues to 2240. Still open for research with a US accountant: which purchases are taxable, per-state rules, and filing (louisburroughs/durion-positivity-backend#2599; S43 #2604) | Platform owner with a US accountant |
 | OI-20 | `currencyCode` and per-line cost basis on `goodsreceipt.recorded`, and a costed return-to-vendor fact (AW38; louisburroughs/durion-positivity-backend#2598). Landed cost (capitalising freight and non-recoverable tax): #2600 | Inventory |
 
 ---
@@ -1208,8 +1228,8 @@ To change when the stories land: `pos-accounting/README.md` (endpoints, settings
 `FLOAT_REGISTER_SESSION_OPEN`, `REGISTER_FLOAT_LOCATION_MISMATCH` (pos-order),
 `FLOAT_AMOUNT_NEGATIVE`, `FLOAT_DATE_BEFORE_RELOCATION`, `FLOAT_RELOCATION_NOT_REVERSIBLE`, `FLOAT_REVERSAL_BEFORE_RELOCATION`,
 `BANK_OPENING_BALANCE_ALREADY_ESTABLISHED`, `BANK_OPENING_BALANCE_NOT_FIRST`, `BANK_OPENING_BALANCE_ACCOUNT_NOT_ELIGIBLE`, `BANK_OPENING_BALANCE_EMPTY`;
-from AW37–AW43: `AP_BILL_UNCLASSIFIED`, `AP_BILL_NOT_VOIDABLE`, `AP_PAYMENT_METHOD_NOT_SUPPORTED`, and the mapping refusal's code once
-louisburroughs/durion-positivity-backend#2601 is decided); `.business-rules/POSTING_RULES_SCHEMA.md` (vendor bills and AP payments use posting categories,
+from AW37–AW44: `AP_BILL_UNCLASSIFIED`, `AP_BILL_NOT_VOIDABLE`, `AP_PAYMENT_METHOD_NOT_SUPPORTED`, `AP_BILL_TAX_ON_RESALE_GOODS`,
+and the mapping refusal's code once louisburroughs/durion-positivity-backend#2601 is decided); `.business-rules/POSTING_RULES_SCHEMA.md` (vendor bills and AP payments use posting categories,
 not rule versions, AW40); `VendorBillServiceImpl` Javadoc and
 comments (PO weight is 5, HIGH is ≥ 70);
 `.business-rules/PERMISSION_TAXONOMY.md` (the new keys; remove the unregistered `accounting:ap:approve` placeholder text in favour of
