@@ -14,7 +14,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/security/index.md) — authority, current guidance, and historical records
 
 **Implemented by:** [pos-security-service](../backend/pos-security-service.md), [pos-people](../backend/pos-people.md), [pos-catalog](../backend/pos-catalog.md),
-[pos-location](../backend/pos-location.md)
+[pos-accounting](../backend/pos-accounting.md)
 
 **Business rules:**
 

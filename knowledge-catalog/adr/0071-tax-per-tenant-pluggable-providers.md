@@ -7,7 +7,7 @@ path: durion/docs/adr/0071-tax-per-tenant-pluggable-providers.adr.md
 tags: [adr, accounting, multitenancy]
 status: stable
 sources: [docs/adr/0071-tax-per-tenant-pluggable-providers.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T13:18:10+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T13:18:10Z'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0071-tax-per-tenant-pluggable-providers.adr.md) — `docs/adr/0071-tax-per-tenant-pluggable-providers.adr.md`
