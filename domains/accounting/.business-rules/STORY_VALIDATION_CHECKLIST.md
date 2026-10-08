@@ -36,6 +36,9 @@ A story that needs a rule this checklist cannot cite adds it to "Open Questions"
 - [ ] Story references only posting categories, mapping keys and GL accounts documented in `BACKEND_CONTRACT_GUIDE.md` or the spec; a new account,
   mapping or debit/credit pairing goes under "Open Questions", never invented (agent contract "MUST NOT").
 - [ ] Story states whether posting is immediate on consumption or deferred and cites the decision that fixes it (spec §4.5 for Kafka facts).
+- [ ] Tax (AW45, `AGENT_GUIDE.md` "Tax: pos-tax is a collection of stubs"): the story decides no tax-law value (rate, taxability,
+  recoverable share, evidence threshold, registration format, filing). It calls a `pos-tax` stub listed in the stub register of
+  `pos-tax/README.md`, or specifies a new stub there (contract, placeholder behaviour from configuration, calling story).
 
 ---
 
