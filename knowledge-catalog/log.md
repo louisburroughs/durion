@@ -8,6 +8,9 @@
 * **Updated**: `adr/0070-bill-intake-ownership-and-vendor-master.md` and `domains/accounting.md` restamped for ADR-0070's 2026-10-08
   Decision 5 amendment and the accounting workspace specification's AW60–AW66 (the extraction provider, louisburroughs/durion#549). Only these
   entries were regenerated; other entries' timestamp drift is left for a full regeneration.
+* **Pinned**: `pos-tenant` to `general` in `MODULE_DOMAIN`. The accounting workspace specification now names it as the home of tenant
+  settings (AW67, AW68) more often than any other domain does, which would otherwise make the platform's tenant registry an accounting
+  module. `backend/pos-tenant.md` and `domains/general.md` regenerated with it; `adr/0070` and `domains/accounting.md` restamped again.
 
 ## 2026-10-07
 

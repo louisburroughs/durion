@@ -13,7 +13,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-02T16:17:19
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/general/index.md) — authority, current guidance, and historical records
 
-**Implemented by:** [pos-mcp-server](../backend/pos-mcp-server.md)
+**Implemented by:** [pos-tenant](../backend/pos-tenant.md), [pos-mcp-server](../backend/pos-mcp-server.md)
 
 **Documentation:**
 
