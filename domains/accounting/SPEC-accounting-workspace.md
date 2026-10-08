@@ -31,7 +31,8 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > advice (AW48); at the owner's request the Accounting Domain Agent then answered the Canada questions it could without tax law (AW49–AW57;
 > louisburroughs/durion#553), and the owner confirmed AW56's cash-rounding account the same day. The Chief Architect answered the issue's architecture
 > questions the same day; the owner accepted the resulting recommendations (AW58, AW59; ADR-0071). Also on 2026-10-08 the platform owner chose the
-> extraction provider and its terms (AW60–AW66; louisburroughs/durion#549); three points derived from those answers await the owner's confirmation (OI-25).
+> extraction provider and its terms (AW60–AW66; louisburroughs/durion#549), confirmed the points derived from them the same day, and added per-tenant
+> reading tiers and a tenant locale (AW63, AW67, AW68).
 > Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
@@ -568,11 +569,14 @@ reader is unsure of is marked "Check this" and blocks confirmation until a perso
   documents out of AWS's service improvement; Security verifies AWS's retention terms before any provider call is enabled (§7.4 control 11).
 - **Languages (AW62).** The tenant's primary language plus English: English for an English tenant, Spanish and English for es-US, French and English for
   fr-CA (Québec QST lines included). AWS documents `AnalyzeExpense`'s invoice fields for English, so French and Spanish are proven on the labelled sample set
-  before they are trusted (OI-24); until a language is calibrated, every field it fills is marked "Check this".
-- **Allowance (AW63).** Reading costs the platform per page, so each tenant has a monthly reading allowance, 20.00 USD by default and configurable per
-  tenant (about 2,000 pages at a list price near one US cent a page; confirm on AWS's price list for the region). A document that would pass it opens for
-  manual entry (AW26) and says why.
-- **HEIC (AW64, proposed).** HEIC is the photo format iPhones save by default. Textract accepts JPEG, PNG, PDF and TIFF only, so the worker converts a HEIC
+  before they are trusted (OI-24); until a language is calibrated, every field it fills is marked "Check this". The tenant's locale is recorded in
+  pos-tenant by platform operators (AW67).
+- **Allowance (AW63, AW68).** Reading costs the platform per page, so each tenant has its own monthly reading allowance. There is no shared pool: no tenant
+  can use up what other tenants pay for, and tenants on the same tier get the same allowance. The allowance comes from the tenant's reading tier, which
+  only platform operators define, price and assign, so larger allowances can be sold. `STANDARD` is 20.00 USD (about 2,000 pages at a list price near
+  one US cent a page; confirm on AWS's price list for the region). A document that would pass the allowance, or whose tenant's allowance isn't known yet,
+  opens for manual entry (AW26) and says why.
+- **HEIC (AW64).** HEIC is the photo format iPhones save by default. Textract accepts JPEG, PNG, PDF and TIFF only, so the worker converts a HEIC
   photo to JPEG before sending; the stored source file stays the original.
 - **Several invoices in one file (AW65).** Splitting is automatic and asks nothing of the uploader: no one-invoice-per-page rule, no separator sheets or end
   markers. Textract reads each page as its own invoice and keeps no context between pages, so the worker groups consecutive pages into invoices from what was
@@ -1097,6 +1101,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 - With a 20.00 USD allowance, 19.99 used and a configured price of 0.01 USD a page, a two-page PDF is not sent to the provider: the draft opens for manual
   entry, saying the month's reading allowance is used up (AW63).
 - A three-page PDF holding a two-page invoice and a one-page invoice, uploaded with no separator, yields two proposed drafts, pages 1–2 and 3 (AW65).
+- Two tenants on `STANDARD`: one at its limit has no effect on the other, whose next document is still read (AW63).
 - The person who confirms an upload is the bill's creator and can't approve it.
 - An EDI invoice without a `vendorId` is parked for a person and one from an inactive vendor becomes `MATCH_EXCEPTION`; neither is dropped, and the EDI
   event is stored durably even when the bill can't be created yet.
@@ -1222,11 +1227,13 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW59 | People reach pos-tax only through front doors: registrations through pos-accounting (`accounting:tax_registration:view`, `…:manage`), exemption certificates through pos-customer, provider bindings through pos-tenant; each write endpoint accepts only its front door; service computation calls stay direct; pos-tax picks a provider plug-in per tenant and country (`US_SELF`, `CA_SELF`, `AVALARA` …) on platform-held accounts | Chief Architect (2026-10-08; louisburroughs/durion#553 question 2); recommendations accepted by the platform owner (2026-10-08) | §4.7, §7.1, §7.3; S31, S32, S33; ADR-0071, ADR-0021 amended |
 | AW60 | The extraction provider is AWS Textract `AnalyzeExpense`, called only by the extraction worker in the platform's own AWS account and region. Documents never go to a third-party vendor: no specialised invoice API, other cloud or self-hosted reader in v1 | Platform owner (2026-10-08; louisburroughs/durion#549 Q1, Q2) | §4.8, §4.9, §7.4; S26; ADR-0070 Decision 5 |
 | AW61 | No retention and no training are required. The AWS AI-services opt-out policy keeps the documents out of service improvement; retention is verified by Security against AWS's current Textract terms before any provider call is enabled (the worker runs `none` until then). Each page is sent in a synchronous request, never staged in S3 or other provider storage; the worker's IAM role allows only the Textract read actions it uses and its egress only the regional endpoint | Platform owner (2026-10-08; #549 Q2); mechanism recorded with this decision | §4.8, §7.4 control 11; S26 |
-| AW62 | v1 reads the tenant's primary language plus English (es-US: Spanish and English; fr-CA: French and English, QST lines included). The labelled sample set covers each language and calibrates "Check this" per language; until then every field a language fills is marked. French and Spanish coverage of `AnalyzeExpense` and the source of a tenant's primary language: OI-24 | Platform owner (2026-10-08; #549 Q3) | §4.8; S25, S26 |
-| AW63 | Reading allowance: 20.00 USD per tenant per calendar month by default, configurable per tenant. pos-accounting meters it (the worker is stateless): pages sent to a provider × the configured price per page, retries included; inspection and spreadsheets are free. A document that would pass the allowance is not sent and opens for manual entry (AW26) with reason `EXTRACTION_ALLOWANCE_USED`. Who may change it: OI-25 | Platform owner (2026-10-08; #549 Q4) | §4.8, §4.9; S26 |
-| AW64 | HEIC stays a v1 format; the worker converts it to JPEG before sending (Textract takes JPEG, PNG, PDF and TIFF); the stored source file stays the original | Proposed 2026-10-08 in answer to the owner's question on #549 Q5; platform owner confirms (OI-25) | §4.8; S26 |
-| AW65 | Multi-invoice files split automatically, with no rule asked of the uploader. Textract reads each page as its own invoice, so the worker groups consecutive pages into invoices from what was read and proposes the splits; a person confirms them | Platform owner (2026-10-08; #549 Q5: splitting required, no hints); grouping by the worker proposed with this record, owner confirms (OI-25) | §4.8, §4.9; S26 |
+| AW62 | v1 reads the tenant's primary language plus English (es-US: Spanish and English; fr-CA: French and English, QST lines included). The labelled sample set covers each language and calibrates "Check this" per language; until then every field a language fills is marked. French and Spanish coverage of `AnalyzeExpense`: OI-24; the tenant's locale: AW67 | Platform owner (2026-10-08; #549 Q3) | §4.8; S25, S26, S44 |
+| AW63 | Reading allowance per tenant per calendar month, never pooled: each tenant's usage counts only against its own allowance, and tenants on the same tier get the same one. The amount comes from the tenant's reading tier (`STANDARD` = 20.00 USD), configurable so tiers can be sold; only platform operators change tiers or assign them (AW68). pos-accounting meters it (the worker is stateless): pages sent to a provider × the configured price per page, retries included; inspection and spreadsheets are free. A document that would pass the allowance is not sent and opens for manual entry (AW26) with reason `EXTRACTION_ALLOWANCE_USED` | Platform owner (2026-10-08; #549 Q4; per-tenant split, tiers and operator-only confirmed the same day) | §4.8, §4.9; S26, S45 |
+| AW64 | HEIC stays a v1 format; the worker converts it to JPEG before sending (Textract takes JPEG, PNG, PDF and TIFF); the stored source file stays the original | Proposed 2026-10-08 in answer to the owner's question on #549 Q5; confirmed by the platform owner the same day | §4.8; S26 |
+| AW65 | Multi-invoice files split automatically, with no rule asked of the uploader. Textract reads each page as its own invoice, so the worker groups consecutive pages into invoices from what was read and proposes the splits; a person confirms them | Platform owner (2026-10-08; #549 Q5: splitting required, no hints; grouping by the worker confirmed the same day) | §4.8, §4.9; S26 |
 | AW66 | Fallback providers are configuration: an ordered list in the worker, tried in turn when one is down or can't read a file; v1 lists Textract alone; manual entry (AW26) stays the last resort. A provider added later meets AW60 and AW61 | Platform owner (2026-10-08; #549 Q6) | §4.8, §4.9; S26 |
+| AW67 | Each tenant has a locale (BCP 47, from the supported list) in pos-tenant: required at creation, changed only by platform operators, published additively on `tenant.created` / `tenant.updated` and kept by consumers; pos-accounting resolves it for the extraction language (AW62), `en-US` while unknown | Platform owner (2026-10-08; #549, "make a story to set a tenant locale"); placement in pos-tenant follows ADR-0067 PC-2 | §4.8; S44 |
+| AW68 | Reading tiers live in pos-tenant: a catalog (code, monthly allowance with its currency, active) seeded `STANDARD` 20.00 USD, and one tier per tenant (`STANDARD` by default), both managed only by platform operators (`platform:reading_tier:*`, `platform:tenant:update`). pos-tenant publishes each tenant's allowance as the narrow fact `tenant.reading-allowance.changed`, kept off the public projection; pos-accounting keeps it, and an unknown allowance reads nothing (`EXTRACTION_ALLOWANCE_UNKNOWN`) | Platform owner (2026-10-08; #549: "platform operators only … configurable so we can sell tiers"); placement in pos-tenant follows ADR-0071 | §4.8; S26, S45 |
 
 ---
 
@@ -1238,7 +1245,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | 2 — Counter correctness | Customer required at checkout; CASH house account; partyId non-null; unpaid walk-in sales | Order, CRM, Invoicing & Payments sign-off |
 | 3 — Bill approvals | Roles and permissions; `AWAITING_APPROVAL` / `REJECTED`; approval endpoints and limits; SoD guards; posting at approval (AW37–AW43); receipt accruals (S41); AP payment posting (S42); Bills to pay review for EDI bills; Approval limits (Bills section) | Security sign-off; Inventory decision for S41 |
 | 4 — Cash and drawers | Float account and commands; drawer movement reasons, postings and limits; session policy; petty categories; undeposited sessions and Record bank deposit; cash-position and outlook read models; Approval limits (Drawer cash, Categories) | Phase 2; Order sign-off (R6.1) |
-| 5 — Bill intake | Vendor master in pos-supplier and the copies in pos-accounting and pos-order (G15); delivery-reference check (G16); `BillIntakeItem` and `BillIntakePort`; upload, spreadsheet import, read-back and confirm; extraction worker; inbound-mail edge and email-in; vendor statements; EDI adapter through `BillIntakePort`; PO matching (later) | New intake ADR accepted with the ADR-0044 §1, ADR-0049 and ADR-0050 amendments; the G14 defect fix; extraction provider chosen (AW60–AW66; OI-24, OI-25 before French and Spanish reads); OI-11, OI-14 |
+| 5 — Bill intake | Vendor master in pos-supplier and the copies in pos-accounting and pos-order (G15); delivery-reference check (G16); `BillIntakeItem` and `BillIntakePort`; upload, spreadsheet import, read-back and confirm; extraction worker; inbound-mail edge and email-in; vendor statements; EDI adapter through `BillIntakePort`; PO matching (later) | New intake ADR accepted with the ADR-0044 §1, ADR-0049 and ADR-0050 amendments; the G14 defect fix; extraction provider chosen (AW60–AW68; OI-24 before French and Spanish reads); OI-11, OI-14 |
 | 6 — Canada | §4.7 items, against pos-tax stubs (AW48, AW57) | ADR-0067 Stage A Canadian launch work and the PC-15 readiness sign-off (OP-9); expert advice replaces the stubs (OI-4) |
 
 ### 11.1 Stories (capability CAP:550, louisburroughs/durion#550)
@@ -1269,6 +1276,8 @@ binds only the default tenant today). S36 makes pos-inventory name pos-supplier 
 | S41 | 3 | Goods receipts post to inventory and GRNI from goodsreceipt.recorded (AW38) | louisburroughs/durion-positivity-backend#2602 |
 | S42 | 3 | AP payments post through AP_PAYMENT: bank account, fee, period and currency checks (AW40, AW41) | louisburroughs/durion-positivity-backend#2603 |
 | S43 | 3 | US purchase tax stubs: hold bills taxed on resale goods, accrue use tax to 2240 (AW44) | louisburroughs/durion-positivity-backend#2604 |
+| S44 | 5 | Tenant locale: platform operators set each tenant's locale in pos-tenant, published on tenant.events.v1 (AW67) | louisburroughs/durion-positivity-backend#2618 |
+| S45 | 5 | Reading tiers: platform operators assign each tenant a document-reading allowance (pos-tenant), enforced by pos-accounting (AW68) | louisburroughs/durion-positivity-backend#2619 |
 | S15 | 4 | Chart of accounts, float and petty-expense categories | louisburroughs/durion-positivity-backend#2511 |
 | S16 | 4 | Drawer movements: fixed reasons, session policy (allowed / amount), elevation and the close fact v2 | louisburroughs/durion-positivity-backend#2512 |
 | S17 | 4 | Drawer movements post to the ledger; vendor cash on delivery becomes an AP payment | louisburroughs/durion-positivity-backend#2513 |
@@ -1303,10 +1312,11 @@ louisburroughs/durion-positivity-backend#2522 and #2523; S32's Q3 default is rev
 placeholders and the AW51 / AW53 bill checks. AW58–AW59 (2026-10-08, ADR-0071) add the registration transport and front door: S31 publishes the
 fact and accepts writes only from pos-accounting, S32 adds the front-door endpoints and the replica, and S33's registration panel posts to pos-accounting.
 AW60–AW66 (2026-10-08) unblock S26's provider adapter and add the allowance meter to its pos-accounting adapter (comment on
-louisburroughs/durion-positivity-backend#2519). S29 still needs a note to show the allowance reason on the draft.
+louisburroughs/durion-positivity-backend#2519). S29 still needs a note to show the allowance reason on the draft. S44 and S45 were added on
+2026-10-08 from AW67 and AW68: the tenant locale (#2618) and the reading tiers (#2619); each also needs a platform-admin frontend story.
 
 Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553, answered 2026-10-08 under the stub rule (AW48–AW57; the owner confirmed the rounding account, OI-21; the Chief Architect answered questions 1–2, AW58–AW59, ADR-0071) · extraction
-provider louisburroughs/durion#549, answered 2026-10-08 (AW60–AW66; three derived points await the owner, OI-25).
+provider louisburroughs/durion#549, answered 2026-10-08 (AW60–AW68; the owner confirmed the derived points the same day, OI-25).
 
 ---
 
@@ -1337,8 +1347,8 @@ provider louisburroughs/durion#549, answered 2026-10-08 (AW60–AW66; three deri
 | OI-21 | **Resolved 2026-10-08:** the CAD cash-rounding account is 6050 Cash Rounding, category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE` (AW56; ADR-0067 PC-7 (b)); S32 seeds it for CAD tenants | Platform owner |
 | OI-22 | **Resolved 2026-10-08 (AW58, AW59; ADR-0071):** registrations travel by pos-tax's outbox fact `tax.registration.changed`; people record them through pos-accounting, which passes the write to pos-tax; pos-tax picks a provider plug-in per tenant and country | Chief Architect (louisburroughs/durion#553 questions 1–2) |
 | OI-23 | The other two front doors of ADR-0071 have no story yet: exemption certificates through pos-customer (`crm:tax_exemption:view`, `…:manage`) and provider bindings through pos-tenant (`platform:tenant_tax_provider:manage`). Neither blocks CAP:550 | Platform owner |
-| OI-24 | Reading French and Spanish invoices (AW62). AWS documents `AnalyzeExpense`'s invoice fields for English; Textract's text, forms and tables also read French and Spanish. The labelled sample set decides per language. Recommended where a language falls short: the worker reads it with Textract `AnalyzeDocument` (forms and tables) and maps the labels with a per-language dictionary, within AW60–AW61. Also open: nothing records a tenant's primary language today (the tenant registry has no such field); recommended: a bill-intake setting in pos-accounting, default English, until a tenant-wide language exists | Platform owner with Positivity (Integrations) (louisburroughs/durion#549) |
-| OI-25 | Owner to confirm three points derived from the #549 answers: HEIC converted to JPEG in the worker (AW64); pages grouped into invoices by the worker, since Textract reads each page alone (AW65; if the provider itself must split, Textract does not, and AW60 reopens); who may change a tenant's allowance (AW63; recommended: platform operators only, since the platform's AWS account pays, with usage visible to the shop's admins) | Platform owner (louisburroughs/durion#549) |
+| OI-24 | Reading French and Spanish invoices (AW62). AWS documents `AnalyzeExpense`'s invoice fields for English; Textract's text, forms and tables also read French and Spanish. The labelled sample set decides per language. Recommended where a language falls short: the worker reads it with Textract `AnalyzeDocument` (forms and tables) and maps the labels with a per-language dictionary, within AW60–AW61. The tenant's locale itself is settled by AW67 (S44) | Platform owner with Positivity (Integrations) (louisburroughs/durion#549) |
+| OI-25 | **Resolved 2026-10-08:** the owner confirmed HEIC conversion in the worker (AW64) and page grouping by the worker (AW65); the allowance is per tenant and never pooled, from tiers that only platform operators define and assign (AW63, AW68); and asked for a tenant locale (AW67) | Platform owner (louisburroughs/durion#549) |
 
 ---
 

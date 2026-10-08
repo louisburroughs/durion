@@ -101,8 +101,9 @@ and the AWS AI-services opt-out policy keeps the documents out of AWS's service 
 retention terms before any provider call is enabled. It reads the tenant's primary language plus English, converts HEIC to
 JPEG before sending, and groups pages into invoices to propose splits, since Textract reads each page on its own. Its configuration is an ordered list of
 providers, Textract alone in v1, with manual entry as the last resort. pos-accounting meters a monthly reading allowance per tenant (default 20.00 USD) and
-sends nothing past it. HEIC conversion, page grouping and who may change the allowance await the platform owner's confirmation (specification OI-25);
-French and Spanish coverage is proven on a labelled sample set (OI-24).
+sends nothing past it; the allowance is never pooled across tenants and comes from a reading tier that only platform operators define and assign
+(AW68). The Platform Owner confirmed HEIC conversion and page grouping the same day; French and Spanish coverage is proven on a labelled sample set
+(OI-24).
 
 ### 6. An inbound-mail edge carries email
 
