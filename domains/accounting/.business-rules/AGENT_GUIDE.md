@@ -81,7 +81,9 @@ This guide is written for engineers and agents implementing Moqui services/scree
 
 ### Integration points (expanded)
 
-- **Tax Configuration Service**: authoritative tax/fee rules.
+- **Tax Configuration Service (`pos-tax`)**: tax/fee rules. Today a collection of stubs that lets accounting stories begin, never a tax
+  authority (AW48): its rates, rules and answers are placeholders held for expert advice, each listed in the stub register of
+  `durion-positivity-backend/pos-tax/README.md`.
 - **Billing domain**: emits `InvoiceIssued`; Accounting ingests and posts AR/revenue/tax.
 - **Payment domain / external processors**: emits `PaymentReceived` and `RefundIssued`.
 - **People/Timekeeping domain**: provides approved time entries; Accounting exports approved time for payroll/cost accounting.
@@ -142,13 +144,27 @@ This guide is written for engineers and agents implementing Moqui services/scree
 
 ### Invoice calculations & adjustments (existing + clarified)
 
-- Use only the Tax Configuration Service as the authoritative source for tax and fee rules.
+- Use only the Tax Configuration Service (`pos-tax`) as the source for tax and fee rules; its answers are stubs today (AW48, below).
 - Calculations must be immutable once invoice is issued.
 - Monetary rounding uses HALF_UP with currency-scale precision; round per line, then sum.
 - Invoice cannot be issued if tax basis data is incomplete or calculation failed.
 - Variances must be recorded with canonical reason codes; large variances require approval.
 - Adjustments allowed only on Draft invoices; negative totals disallowed; credit memos required for over-credit.
 - Audit trail mandatory for all financial state changes.
+
+### Tax: pos-tax is a collection of stubs (AW48, normative)
+
+Ruled by the platform owner on 2026-10-08 (`../SPEC-accounting-workspace.md` §10 AW48; louisburroughs/durion#553).
+
+- `pos-tax` exists to let accounting stories begin. Its rates, rules and answers are placeholders, not tax law.
+- Every tax question is held for expert advice and stubbed in this version: rates, which supplies are taxable, what is recoverable and at what
+  share, evidence thresholds, registration formats, claim limits and filing. A story never decides one; it codes against the stub.
+- When accounting needs a tax function that `pos-tax` lacks, the story specifies it as a `pos-tax` stub: its contract, a deterministic
+  placeholder behaviour taken from configuration, and the story that calls it. The `pos-tax` change adds the stub to the register in
+  `durion-positivity-backend/pos-tax/README.md`.
+- Accounting still rules on what surrounds tax: posting legs, holds versus defaults, which setting applies when, and bookkeeping controls.
+- A stub becomes a real rule only once the expert advice is recorded in the specification's decision log. Callers code against the contract,
+  so that change never touches them.
 
 ### Receivables: payment ingestion vs application (normative)
 
@@ -224,7 +240,7 @@ This guide is written for engineers and agents implementing Moqui services/scree
 ### Invoice Totals Calculation
 
 - Triggered when invoice is created or line items change.
-- Fetch tax/fee rules from Tax Configuration Service.
+- Fetch tax/fee rules from the Tax Configuration Service (`pos-tax`, stubbed, AW48).
 - Calculate line taxes, fees, subtotal, total tax, total fees, rounding adjustment, grand total.
 - Compare with estimate snapshot; create variance if needed.
 - Persist calculation snapshot and update invoice status.
