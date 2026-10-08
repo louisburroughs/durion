@@ -38,7 +38,8 @@ A story that needs a rule this checklist cannot cite adds it to "Open Questions"
 - [ ] Story states whether posting is immediate on consumption or deferred and cites the decision that fixes it (spec §4.5 for Kafka facts).
 - [ ] Tax (AW45, `AGENT_GUIDE.md` "Tax: pos-tax is a collection of stubs"): the story decides no tax-law value (rate, taxability,
   recoverable share, evidence threshold, registration format, filing). It calls a `pos-tax` stub listed in the stub register of
-  `pos-tax/README.md`, or specifies a new stub there (contract, placeholder behaviour from configuration, calling story).
+  `durion-positivity-backend/pos-tax/README.md`, or specifies a new stub there (contract, placeholder behaviour from configuration,
+  calling story).
 
 ---
 
