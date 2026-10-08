@@ -1,13 +1,13 @@
 ---
 type: ADR
 title: 'ADR-0021: Tax API Consumption and Internal Access Policy'
-description: Callers may treat address validation as best-effort and not handle hard validation failures.
+description: pos-tax is internal-only with strict address validation; it has no gateway route or SDK, people reach it only through front-door domain modules, and services call it directly from an allowlist (amended 2026-10-08 by ADR-0071).
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0021-tax-api-consumption-and-internal-access-policy.adr.md
 path: durion/docs/adr/0021-tax-api-consumption-and-internal-access-policy.adr.md
 tags: [adr, accounting, api-contract]
 status: stable
 sources: [docs/adr/0021-tax-api-consumption-and-internal-access-policy.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T13:12:54+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0021-tax-api-consumption-and-internal-access-policy.adr.md) — `docs/adr/0021-tax-api-consumption-and-internal-access-policy.adr.md`
@@ -17,3 +17,6 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 **Related:**
 
 * [ADR-0014](../adr/0014-gateway-internal-service-security.md)
+* [ADR-0018](../adr/0018-audit-actor-fields-from-security-context.md)
+* [ADR-0044](../adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0071](../adr/0071-tax-per-tenant-pluggable-providers.md)
