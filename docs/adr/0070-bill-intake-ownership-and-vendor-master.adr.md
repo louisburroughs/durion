@@ -95,6 +95,16 @@ CFDI XML and returns fields with a per-field confidence and proposed splits for 
 that holds the extraction provider's credentials. pos-accounting invokes it under R2 as an asynchronous job while the draft sits in `EXTRACTING`; it runs
 with CPU, memory, time and decompression-ratio limits. The provider is chosen in louisburroughs/durion#549.
 
+*Amended 2026-10-08 (louisburroughs/durion#549; specification AW60–AW66).* The provider is **AWS Textract `AnalyzeExpense`** in the platform's own AWS
+account and region; documents never go to a third-party vendor. The worker sends each page in a synchronous request and stages nothing in provider storage,
+and the AWS AI-services opt-out policy keeps the documents out of AWS's service improvement. No retention is required too: Security verifies AWS's
+retention terms before any provider call is enabled. It reads the tenant's primary language plus English, converts HEIC to
+JPEG before sending, and groups pages into invoices to propose splits, since Textract reads each page on its own. Its configuration is an ordered list of
+providers, Textract alone in v1, with manual entry as the last resort. pos-accounting meters a monthly reading allowance per tenant (default 20.00 USD) and
+sends nothing past it; the allowance is never pooled across tenants and comes from a reading tier that only platform operators define and assign
+(AW68). The Platform Owner confirmed HEIC conversion and page grouping the same day; French and Spanish coverage is proven on a labelled sample set
+(OI-24).
+
 ### 6. An inbound-mail edge carries email
 
 **Decision:** ✅ **Resolved** — A new **inbound-mail edge** (working name; a utility under ADR-0044 §1) owns mail transport: MX, SPF / DKIM / DMARC alignment,
@@ -211,7 +221,7 @@ outbound rendering only.
 ### Neutral
 
 - Existing alpha bills are reseeded rather than migrated to the new vendor key (pre-production policy).
-- The extraction provider is a separate decision (louisburroughs/durion#549); without it, intake still works by manual entry.
+- The extraction provider is a separate decision (louisburroughs/durion#549, made 2026-10-08: AWS Textract); without it, intake still works by manual entry.
 
 ---
 
@@ -275,3 +285,5 @@ Applied 2026-10-05 as dated amendments in each ADR, except the v2 X12 855 / 856 
 - **2026-10-05**: Initial draft from the OI-1 ruling and the Platform Owner's vendor-master decision.
 - **2026-10-05**: Accepted by the Platform Owner.
 - **2026-10-05**: ADR-0044 §1, ADR-0049 §1–§3 and ADR-0050 §2 / §6 amended as listed under "Changes required in other ADRs".
+- **2026-10-08**: Decision 5 amended with the extraction provider and its terms chosen by the Platform Owner (louisburroughs/durion#549; specification
+  AW60–AW66).

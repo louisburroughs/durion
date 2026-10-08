@@ -87,6 +87,10 @@ MODULE_DOMAIN = {
     # The integration module (ADR-0049) and, under ADR-0070, the vendor master. The accounting
     # workspace specification names it often as a dependency, which must not move its ownership.
     "pos-supplier": "positivity",
+    # The tenant registry (ADR-0062 §7) belongs to the platform, not a business domain. The accounting
+    # workspace specification names it often as the home of tenant settings (AW67, AW68), which must
+    # not move its ownership to accounting.
+    "pos-tenant": "general",
 }
 MODULE_FALLBACK = {
     "pos-agent-framework": "Placeholder module directory; no build file or README yet.",
