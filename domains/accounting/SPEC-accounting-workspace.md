@@ -30,7 +30,8 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > up go to a person. On 2026-10-08 the platform owner ruled that pos-tax is a collection of stubs and that every tax question waits for expert
 > advice (AW48); at the owner's request the Accounting Domain Agent then answered the Canada questions it could without tax law (AW49–AW57;
 > louisburroughs/durion#553), and the owner confirmed AW56's cash-rounding account the same day. The Chief Architect answered the issue's architecture
-> questions the same day; the owner accepted the resulting recommendations (AW58, AW59; ADR-0071).
+> questions the same day; the owner accepted the resulting recommendations (AW58, AW59; ADR-0071). Also on 2026-10-08 the platform owner chose the
+> extraction provider and its terms (AW60–AW66; louisburroughs/durion#549); three points derived from those answers await the owner's confirmation (OI-25).
 > Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
@@ -559,6 +560,26 @@ line row.
 Whatever the channel, nothing is owed until a person checks the read-back and the bill is approved (§4.3). Read-back fields carry a confidence state; a field the
 reader is unsure of is marked "Check this" and blocks confirmation until a person accepts or corrects it.
 
+**Reading documents (AW60–AW66).** CSV and XLSX are read by column mapping and need no provider. PDFs, photos and scans are read by **AWS Textract
+`AnalyzeExpense`**, called only by the extraction worker:
+
+- **Where documents go (AW60, AW61).** Only to Textract in the platform's own AWS account and region (us-east-1 today), never to a third-party vendor. The
+  worker sends one page per synchronous call and never stages a document in S3 or other provider storage; the AWS AI-services opt-out policy covers Textract
+  (§7.4 control 11).
+- **Languages (AW62).** The tenant's primary language plus English: English for an English tenant, Spanish and English for es-US, French and English for
+  fr-CA (Québec QST lines included). AWS documents `AnalyzeExpense`'s invoice fields for English, so French and Spanish are proven on the labelled sample set
+  before they are trusted (OI-24); until a language is calibrated, every field it fills is marked "Check this".
+- **Allowance (AW63).** Reading costs the platform per page, so each tenant has a monthly reading allowance, 20.00 USD by default and configurable per
+  tenant (about 2,000 pages at a list price near one US cent a page; confirm on AWS's price list for the region). A document that would pass it opens for
+  manual entry (AW26) and says why.
+- **HEIC (AW64, proposed).** HEIC is the photo format iPhones save by default. Textract accepts JPEG, PNG, PDF and TIFF only, so the worker converts a HEIC
+  photo to JPEG before sending; the stored source file stays the original.
+- **Several invoices in one file (AW65).** Splitting is automatic and asks nothing of the uploader: no one-invoice-per-page rule, no separator sheets or end
+  markers. Textract reads each page as its own invoice and keeps no context between pages, so the worker groups consecutive pages into invoices from what was
+  read (invoice number, vendor, "page x of y", where the totals fall) and proposes the splits; a person confirms them (§4.9).
+- **Fallback (AW66).** The worker's configuration is an ordered provider list; v1 lists Textract alone. When every listed provider is down or can't read the
+  file, manual entry (AW26) is the last resort.
+
 ### 4.9 Bill intake: ownership, drafts, vendors and statements (AW22–AW29)
 
 **Who owns what (AW22).** A supplier invoice reaches the shop in two ways, and each has one owner:
@@ -570,7 +591,7 @@ reader is unsure of is marked "Check this" and blocks confirmation until a perso
 | Read-back, confirm, duplicate check across every channel, bill creation, matching, approval | `pos-accounting` | One internal entry point, `BillIntakePort`, is the only path that creates a vendor bill (ArchUnit-guarded) |
 | The vendor master: every party the shop buys from or pays, with or without a connection | `pos-supplier` | §4.9 "Vendors (AW23)" |
 | Credentialed machine-to-machine vendor channels: EDI, distributor APIs, a CFDI pulled from a supplier API or portal | `pos-supplier` (ADR-0049) | Publishes `SupplierInvoiceReceivedV1` for these only; never stores or republishes a document a person uploaded, imported or emailed (ADR-0044 R6) |
-| Reading untrusted files (OCR, PDF, images, spreadsheets, inbound CFDI XML) | New **extraction worker** (utility) | Stateless and isolated; no business logic; holds the extraction-provider credentials; returns fields with confidence and proposed splits; invoked under ADR-0044 R2 as an asynchronous job while the draft sits in `EXTRACTING` |
+| Reading untrusted files (OCR, PDF, images, spreadsheets, inbound CFDI XML) | New **extraction worker** (utility) | Stateless and isolated; no business logic; holds the extraction-provider credentials (AWS Textract, AW60); returns fields with confidence and proposed splits; invoked under ADR-0044 R2 as an asynchronous job while the draft sits in `EXTRACTING` |
 | Email transport | New **inbound-mail edge** (non-domain) | MX, SPF/DKIM/DMARC, rate limits, `Message-ID` idempotency and address provisioning; the tenant comes only from the receiving address; hands file references to pos-accounting and never creates a bill; never a vendor-profile binding; never replies to senders (no pos-platform-sender) |
 | Outbound CFDI (shop → customer) | `pos-invoice` | PAC stamping, cancellation and the folio fiscal are part of invoice issuance; pos-tax computes tax; pos-documents renders the PDF |
 | — | `pos-invoice`, `pos-documents` | Own no part of bill intake; pos-documents hosts no parsing or storage of inbound files (ADR-0020 covers outbound rendering) |
@@ -583,7 +604,8 @@ vendor bill exists) | `DISCARDED` (reason ≥ 10 characters). `FILE_REJECTED`, `
 `QUARANTINED`, when validation or scanning fails, and carries a plain reason; malware stays quarantined. A multi-invoice file yields one draft
 per proposed split. Nothing in this lifecycle posts, is owed or appears in aging.
 
-**When extraction fails (AW26).** If the provider is down or can't read the file, the draft still moves to `READY_FOR_REVIEW` with every field empty and marked
+**When extraction fails (AW26).** If the provider is down or can't read the file, or the tenant's monthly reading allowance is used up (AW63), the draft still
+moves to `READY_FOR_REVIEW` with every field empty and marked
 "Check this", beside the file preview. A person types the bill in; the same confirm, duplicate and approval rules apply. Retry is offered; the bill records
 `extractionOutcome = MANUAL`. Nothing is ever created automatically.
 
@@ -984,6 +1006,11 @@ internal `FileStore` port:
 9. **Audit.** Upload, scan result, extraction, every view and download, and deletion are audited with actor, tenant and file hash.
 10. **No auto-trust.** Extracted values are suggestions; nothing posts or becomes owed until a person confirms the read-back and the bill is approved (§4.3,
     §4.8).
+11. **Provider data handling (AW60, AW61).** Only the extraction worker calls the provider: AWS Textract in the platform's own AWS account and region. Each
+    page goes in the request of a synchronous call; no document is staged in S3 or any other provider storage. The platform's AWS organization applies the
+    AI-services opt-out policy to Textract, so AWS neither keeps nor trains on the documents; the Security sign-off checks this against AWS's current terms.
+    The worker's IAM role allows only the Textract read actions it uses, and its egress only the regional Textract endpoint. A third-party provider would
+    reopen AW60.
 
 ---
 
@@ -1065,6 +1092,9 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 - An unconfirmed draft never appears in aged payables, the cash outlook or any amount owed.
 - With the extraction provider unavailable, an upload reaches `READY_FOR_REVIEW` with every field empty and marked "Check this"; the confirmed bill records
   `extractionOutcome = MANUAL`.
+- With a 20.00 USD allowance, 19.99 used and a configured price of 0.01 USD a page, a two-page PDF is not sent to the provider: the draft opens for manual
+  entry, saying the month's reading allowance is used up (AW63).
+- A three-page PDF holding a two-page invoice and a one-page invoice, uploaded with no separator, yields two proposed drafts, pages 1–2 and 3 (AW65).
 - The person who confirms an upload is the bill's creator and can't approve it.
 - An EDI invoice without a `vendorId` is parked for a person and one from an inactive vendor becomes `MATCH_EXCEPTION`; neither is dropped, and the EDI
   event is stored durably even when the bill can't be created yet.
@@ -1125,7 +1155,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 
 ---
 
-## 10. Decisions record (2026-10-05, 2026-10-07)
+## 10. Decisions record (2026-10-05 to 2026-10-08)
 
 | # | Decision | Decided by | Consequence |
 | --- | --- | --- | --- |
@@ -1188,6 +1218,13 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW57 | Phase 6 accounting codes against five pos-tax stubs: typed Canadian rates with recoverability, registration status as of a date, number shape, evidence rule, plausibility; the evidence-sourced rate seed, AvaTax Canadian mapping, number formats and evidence tiers wait for expert advice | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553) | §4.7, §7.3; S31, S32, S33 |
 | AW58 | Tax registrations travel by outbox: pos-tax owns them and publishes `tax.registration.changed` v1 on `tax.events.v1` with a per-tenant manifest and re-send; pos-accounting and pos-order keep `ext_tax_registration` replicas and read them as of a business date (AW49) | Chief Architect (2026-10-08; louisburroughs/durion#553 question 1) | §4.7, §7.1, §7.3; S31, S32; ADR-0071 §7, ADR-0044 amended |
 | AW59 | People reach pos-tax only through front doors: registrations through pos-accounting (`accounting:tax_registration:view`, `…:manage`), exemption certificates through pos-customer, provider bindings through pos-tenant; each write endpoint accepts only its front door; service computation calls stay direct; pos-tax picks a provider plug-in per tenant and country (`US_SELF`, `CA_SELF`, `AVALARA` …) on platform-held accounts | Chief Architect (2026-10-08; louisburroughs/durion#553 question 2); recommendations accepted by the platform owner (2026-10-08) | §4.7, §7.1, §7.3; S31, S32, S33; ADR-0071, ADR-0021 amended |
+| AW60 | The extraction provider is AWS Textract `AnalyzeExpense`, called only by the extraction worker in the platform's own AWS account and region. Documents never go to a third-party vendor: no specialised invoice API, other cloud or self-hosted reader in v1 | Platform owner (2026-10-08; louisburroughs/durion#549 Q1, Q2) | §4.8, §4.9, §7.4; S26; ADR-0070 Decision 5 |
+| AW61 | No retention and no training: the AWS AI-services opt-out policy covers Textract; each page is sent in a synchronous request, never staged in S3 or other provider storage; the worker's IAM role allows only the Textract read actions it uses and its egress only the regional endpoint | Platform owner (2026-10-08; #549 Q2); mechanism recorded with this decision | §4.8, §7.4 control 11; S26 |
+| AW62 | v1 reads the tenant's primary language plus English (es-US: Spanish and English; fr-CA: French and English, QST lines included). The labelled sample set covers each language and calibrates "Check this" per language; until then every field a language fills is marked. French and Spanish coverage of `AnalyzeExpense` and the source of a tenant's primary language: OI-24 | Platform owner (2026-10-08; #549 Q3) | §4.8; S25, S26 |
+| AW63 | Reading allowance: 20.00 USD per tenant per calendar month by default, configurable per tenant. pos-accounting meters it (the worker is stateless): pages sent to a provider × the configured price per page, retries included; inspection and spreadsheets are free. A document that would pass the allowance is not sent and opens for manual entry (AW26) with reason `EXTRACTION_ALLOWANCE_USED`. Who may change it: OI-25 | Platform owner (2026-10-08; #549 Q4) | §4.8, §4.9; S26 |
+| AW64 | HEIC stays a v1 format; the worker converts it to JPEG before sending (Textract takes JPEG, PNG, PDF and TIFF); the stored source file stays the original | Proposed 2026-10-08 in answer to the owner's question on #549 Q5; platform owner confirms (OI-25) | §4.8; S26 |
+| AW65 | Multi-invoice files split automatically, with no rule asked of the uploader. Textract reads each page as its own invoice, so the worker groups consecutive pages into invoices from what was read and proposes the splits; a person confirms them | Platform owner (2026-10-08; #549 Q5: splitting required, no hints); grouping by the worker proposed with this record, owner confirms (OI-25) | §4.8, §4.9; S26 |
+| AW66 | Fallback providers are configuration: an ordered list in the worker, tried in turn when one is down or can't read a file; v1 lists Textract alone; manual entry (AW26) stays the last resort. A provider added later meets AW60 and AW61 | Platform owner (2026-10-08; #549 Q6) | §4.8, §4.9; S26 |
 
 ---
 
@@ -1199,7 +1236,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | 2 — Counter correctness | Customer required at checkout; CASH house account; partyId non-null; unpaid walk-in sales | Order, CRM, Invoicing & Payments sign-off |
 | 3 — Bill approvals | Roles and permissions; `AWAITING_APPROVAL` / `REJECTED`; approval endpoints and limits; SoD guards; posting at approval (AW37–AW43); receipt accruals (S41); AP payment posting (S42); Bills to pay review for EDI bills; Approval limits (Bills section) | Security sign-off; Inventory decision for S41 |
 | 4 — Cash and drawers | Float account and commands; drawer movement reasons, postings and limits; session policy; petty categories; undeposited sessions and Record bank deposit; cash-position and outlook read models; Approval limits (Drawer cash, Categories) | Phase 2; Order sign-off (R6.1) |
-| 5 — Bill intake | Vendor master in pos-supplier and the copies in pos-accounting and pos-order (G15); delivery-reference check (G16); `BillIntakeItem` and `BillIntakePort`; upload, spreadsheet import, read-back and confirm; extraction worker; inbound-mail edge and email-in; vendor statements; EDI adapter through `BillIntakePort`; PO matching (later) | New intake ADR accepted with the ADR-0044 §1, ADR-0049 and ADR-0050 amendments; the G14 defect fix; extraction provider (OI-1); OI-11, OI-14 |
+| 5 — Bill intake | Vendor master in pos-supplier and the copies in pos-accounting and pos-order (G15); delivery-reference check (G16); `BillIntakeItem` and `BillIntakePort`; upload, spreadsheet import, read-back and confirm; extraction worker; inbound-mail edge and email-in; vendor statements; EDI adapter through `BillIntakePort`; PO matching (later) | New intake ADR accepted with the ADR-0044 §1, ADR-0049 and ADR-0050 amendments; the G14 defect fix; extraction provider chosen (AW60–AW66; OI-24, OI-25 before French and Spanish reads); OI-11, OI-14 |
 | 6 — Canada | §4.7 items, against pos-tax stubs (AW48, AW57) | ADR-0067 Stage A Canadian launch work and the PC-15 readiness sign-off (OP-9); expert advice replaces the stubs (OI-4) |
 
 ### 11.1 Stories (capability CAP:550, louisburroughs/durion#550)
@@ -1259,13 +1296,15 @@ louisburroughs/durion-positivity-backend#2510 and #2515). S41 and S42 were added
 S17, S19, S24, S25, S32, S37 (backend) and S14, S21 (frontend) by comments on their issues. S43 was added on 2026-10-07 from AW44; it follows S12, and
 its per-vendor setting `acceptTaxOnResaleGoods` waits for S24 (phase 5), the per-bill override standing alone until then. S14 still needs an amendment
 to show the hold and the override. AW45–AW47 were ruled in the S12 review (louisburroughs/durion-positivity-backend#2609) and bind S12 (#2509).
-to show the hold and the override. AW48–AW57 (2026-10-08) re-scope S31 to the pos-tax stubs and answer S32's questions Q1–Q5 (comments on
+AW48–AW57 (2026-10-08) re-scope S31 to the pos-tax stubs and answer S32's questions Q1–Q5 (comments on
 louisburroughs/durion-positivity-backend#2522 and #2523; S32's Q3 default is reversed: the share at entry applies). S33 shows the stubbed values as
 placeholders and the AW51 / AW53 bill checks. AW58–AW59 (2026-10-08, ADR-0071) add the registration transport and front door: S31 publishes the
 fact and accepts writes only from pos-accounting, S32 adds the front-door endpoints and the replica, and S33's registration panel posts to pos-accounting.
+AW60–AW66 (2026-10-08) unblock S26's provider adapter and add the allowance meter to its pos-accounting adapter (comment on
+louisburroughs/durion-positivity-backend#2519). S29 still needs a note to show the allowance reason on the draft.
 
 Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553, answered 2026-10-08 under the stub rule (AW48–AW57; the owner confirmed the rounding account, OI-21; the Chief Architect answered questions 1–2, AW58–AW59, ADR-0071) · extraction
-provider louisburroughs/durion#549.
+provider louisburroughs/durion#549, answered 2026-10-08 (AW60–AW66; three derived points await the owner, OI-25).
 
 ---
 
@@ -1273,7 +1312,7 @@ provider louisburroughs/durion#549.
 
 | # | Item | Owner |
 | --- | --- | --- |
-| OI-1 | **Ownership resolved 2026-10-05 (AW22–AW29).** Remaining: choose the extraction provider (louisburroughs/durion#549) and the EDI provider (confirming AW28); accept ADR-0070 | Platform owner / architecture |
+| OI-1 | **Ownership resolved 2026-10-05 (AW22–AW29); extraction provider chosen 2026-10-08 (AW60–AW66, louisburroughs/durion#549).** Remaining: the EDI provider (confirming AW28) | Platform owner / architecture |
 | OI-2 | **Resolved 2026-10-07 (AW37–AW39, AW42, AW43):** every bill posts once, at approval; goods receipts accrue through 2100; entries by class; dates, refusals and the void of an approved bill (louisburroughs/durion#551) | Accounting Domain Agent |
 | OI-3 | **Resolved 2026-10-07 (AW40, AW41):** posting categories `VENDOR_BILL`, `GOODS_RECEIPT`, `AP_PAYMENT` with seeded mappings and tenant remap, no posting-rule versions; AP payment entries (louisburroughs/durion#551) | Accounting Domain Agent |
 | OI-4 | **Widened by AW48 — tax law held for expert advice; pos-tax stubs answer meanwhile (AW57):** rates by province and tax type and which supplies are taxable; which taxes are recoverable and at what share (50% meals); the $100 threshold, the $500 tier, what it compares and whether bills are in scope; whether an unsplit vendor invoice supports a claim; registration-number formats and rules; claims after a back-dated registration (ITC time limit); cash rounding and tax; how taxes stack on one receipt; filing and return frequency | Platform owner with a Canadian accountant (louisburroughs/durion#553) |
@@ -1296,6 +1335,8 @@ provider louisburroughs/durion#549.
 | OI-21 | **Resolved 2026-10-08:** the CAD cash-rounding account is 6050 Cash Rounding, category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE` (AW56; ADR-0067 PC-7 (b)); S32 seeds it for CAD tenants | Platform owner |
 | OI-22 | **Resolved 2026-10-08 (AW58, AW59; ADR-0071):** registrations travel by pos-tax's outbox fact `tax.registration.changed`; people record them through pos-accounting, which passes the write to pos-tax; pos-tax picks a provider plug-in per tenant and country | Chief Architect (louisburroughs/durion#553 questions 1–2) |
 | OI-23 | The other two front doors of ADR-0071 have no story yet: exemption certificates through pos-customer (`crm:tax_exemption:view`, `…:manage`) and provider bindings through pos-tenant (`platform:tenant_tax_provider:manage`). Neither blocks CAP:550 | Platform owner |
+| OI-24 | Reading French and Spanish invoices (AW62). AWS documents `AnalyzeExpense`'s invoice fields for English; Textract's text, forms and tables also read French and Spanish. The labelled sample set decides per language. Recommended where a language falls short: the worker reads it with Textract `AnalyzeDocument` (forms and tables) and maps the labels with a per-language dictionary, within AW60–AW61. Also open: nothing records a tenant's primary language today (the tenant registry has no such field); recommended: a bill-intake setting in pos-accounting, default English, until a tenant-wide language exists | Platform owner with Positivity (Integrations) (louisburroughs/durion#549) |
+| OI-25 | Owner to confirm three points derived from the #549 answers: HEIC converted to JPEG in the worker (AW64); pages grouped into invoices by the worker, since Textract reads each page alone (AW65; if the provider itself must split, Textract does not, and AW60 reopens); who may change a tenant's allowance (AW63; recommended: platform operators only, since the platform's AWS account pays, with usage visible to the shop's admins) | Platform owner (louisburroughs/durion#549) |
 
 ---
 
@@ -1308,6 +1349,7 @@ With the bill-intake ruling (AW22–AW29), before Phase 5 stories:
 - A new ADR, [ADR-0070](../../docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md) (accepted), recording AW22–AW29, the `FileStore` port and the
   security controls of §7.4.
 - ADR-0044 §1: classify the extraction worker (utility) and the inbound-mail edge. *Done 2026-10-05.*
+- ADR-0070 Decision 5: name the provider and its terms (AW60–AW66). *Done 2026-10-08.*
 - ADR-0049 amendments (AW22, AW23). §1: "pos-supplier owns the vendor master and all credentialed machine-to-machine supplier connectivity; each connection
   profile belongs to one vendor. Supplier documents arriving any other way (uploaded, imported or emailed) are AP intake owned by pos-accounting;
   pos-supplier neither stores nor republishes them. An inbound vendor channel requires an amendment to this ADR (architecture §12 decision 7)." §2: "the
