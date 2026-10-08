@@ -197,11 +197,17 @@ not protect against SQL readers, `pg_dump` backups, support sessions or a restor
   (such as the scheme), the reason, the correlation id, the time and the outcome. The row never holds the value or its derivative. If the insert fails,
   the call fails and **reveals nothing**; the insert never runs in a separate (`REQUIRES_NEW`) transaction or after the value is returned.
 - **Refusals reveal nothing.** A 403 or 404 writes no row; a reason refused under the rule above writes a `REASON_REJECTED` row. A decryption failure
-  answers 500 with a module-specific `..._UNREADABLE` code, is logged with ids and the key id only, and is audited with outcome `UNREADABLE`.
+  answers 500 with a module-specific `..._UNREADABLE` code, is logged with ids and the key id only, and is audited with outcome `UNREADABLE` with a null
+  reason, because the reason cannot be checked against a value that could not be read.
 - **Reviewed by someone else.** Reveal rows are read through the module's audit-read permission, held where possible by roles other than the revealers.
 - **Writes under masking.** Each stored element has a stable id (UUIDv7). An update that sends the id without a value keeps the stored ciphertext; changing
   an attribute that describes the value (such as its scheme or region) requires re-entering the value; an unknown id is 400 `VALIDATION_ERROR`; an omitted
   element is removed. Change detection compares ids and stored attributes, never ciphertext.
+- **Never an agent tool.** A reveal operation, and any other operation whose response carries a RESTRICTED value, is never exposed as an MCP tool or
+  called by pos-mcp-server or any other LLM-driven caller. Its value would enter a model's context, its provider and the conversation store (Decision 2),
+  and its reason must be a person's own justification (ADR-0018). Such an operation is protected by a permission whose action is `reveal`; that action is
+  reserved for these operations. pos-mcp-server's discovery excludes, for every HTTP method and before any include rule, an operation whose
+  `x-required-permissions` holds a `…:reveal` permission or whose path ends with `/reveal`. No configuration can re-include it.
 - **In the browser,** a revealed value is shown only until its dialog closes and is never cached, stored, put in a route or query string, or logged
   ([ADR-0065](0065-frontend-untrusted-content-and-browser-persistence-policy.adr.md)).
 
@@ -337,6 +343,7 @@ The four options weighed in louisburroughs/durion-positivity-backend#2617, and t
 - **NEG-004:** The contract guard matches names only. A RESTRICTED value under an innocuous name passes it, and a legitimate field named `number` needs an
   allowlist entry with a sign-off.
 - **NEG-005:** Operators lose the convenience of browsing DLQ values; diagnosing a failure takes one record at a time.
+- **NEG-006:** An agent cannot reveal a value even for a user who holds the permission; the person uses the reveal dialog.
 
 ### Neutral
 
@@ -380,6 +387,11 @@ The four options weighed in louisburroughs/durion-positivity-backend#2617, and t
 - **CHK-009:** A reveal whose reason contains the stored value is refused with nothing revealed and no echo, and the refusal writes one
   `REASON_REJECTED` row with a null reason; a `scheme` or `region` containing a digit, or a `region` outside the ISO 3166-2 shape, is refused without
   echo.
+- **CHK-010:** pos-mcp-server's discovery tests prove the exclusion over the real checked-in `openapi.yaml` of every module (the
+  `DiscoveryAuditWriteExclusionRealSpecsTest` pattern): no discovered tool has a path ending `/reveal` or a `…:reveal` entry in `x-required-permissions`.
+  Synthetic operations carrying only the permission marker, only the path marker, or an include rule that matches them are each excluded. A second test
+  over the same specs fails when an operation has one marker without the other. Removing the exclusion, matching only one marker, or moving it into
+  configuration fails CHK-010.
 
 ### Changes required in other ADRs
 
@@ -445,3 +457,6 @@ matching pending note on the vendor fact and accounting's copy.
   (CHK-001, CHK-009). Status stays PROPOSED.
 - **2026-10-08**: Security decision on PR #571: a shape-checked indirect-tax number is INTERNAL whoever holds it, counterparties included; shapes are
   platform configuration only.
+- **2026-10-08**: Security ruling on louisburroughs/durion-positivity-backend#2621 (comment 6064490514): Decision 4 gains "Never an agent tool" (a
+  reveal or any operation returning a RESTRICTED value is never an MCP tool; two-marker exclusion in pos-mcp-server's discovery; the `reveal` action is
+  reserved), CHK-010 and NEG-006; an `UNREADABLE` audit row has a null reason. Status stays PROPOSED.
