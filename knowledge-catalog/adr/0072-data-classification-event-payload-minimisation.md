@@ -7,7 +7,7 @@ path: durion/docs/adr/0072-data-classification-event-payload-minimisation.adr.md
 tags: [adr, events, platform, security, supplier]
 status: stable
 sources: [docs/adr/0072-data-classification-event-payload-minimisation.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T12:35:20-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T14:02:06-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0072-data-classification-event-payload-minimisation.adr.md) — `docs/adr/0072-data-classification-event-payload-minimisation.adr.md`
