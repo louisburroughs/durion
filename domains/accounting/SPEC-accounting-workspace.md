@@ -29,7 +29,7 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > ruled AW45–AW47 on 2026-10-07, confirming AW47 on 2026-10-08: goods-receipt bills wait for their invoice and take its date; EDI totals that don't add
 > up go to a person. On 2026-10-08 the platform owner ruled that pos-tax is a collection of stubs and that every tax question waits for expert
 > advice (AW48); at the owner's request the Accounting Domain Agent then answered the Canada questions it could without tax law (AW49–AW57;
-> louisburroughs/durion#553).
+> louisburroughs/durion#553), and the owner confirmed AW56's cash-rounding account the same day.
 > Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
@@ -411,7 +411,7 @@ The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per
   event `ORDER_SESSION_POLICY_UPDATE`). The accounting Approval limits page reads and writes them through the pos-order SDK (ADR-0041).
 - CAD cash rounding (ADR-0067 PC-7, AW54): never drawer variance — expected cash counts the rounded tender, so 6040 / 4930 never carry it. The
   difference posts in the cash payment's application entry: Dr 1090 tendered / Cr 1200 settled / the difference on category `CASH_ROUNDING`, key
-  `CASH_ROUNDING_DIFFERENCE` (proposed **6050 Cash Rounding**, AW56, pending the owner), debit when rounded down, credit when up; the invoice closes in
+  `CASH_ROUNDING_DIFFERENCE` (**6050 Cash Rounding**, AW56, confirmed by the owner), debit when rounded down, credit when up; the invoice closes in
   full, with no customer credit. `CASH` only and at most half the cash increment (CAD 0.02), else held `SUSPENDED` / `CASH_ROUNDING_INVALID`. The
   difference carries no tax and changes no tax amount (stub, OI-4).
 
@@ -850,7 +850,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Vendor cash on delivery | listener on the close fact v2 → AP payment, method `CASH` (new), no gateway call | unapplied until the vendor's bill is allocated; Needs attention after N days |
 | Petty-expense categories | EXISTING mapping-key and gl-mapping endpoints under `REGISTER_CASH_MOVEMENT` | publishes `accounting.petty-expense-category.changed` |
 | Estimated due dates | in cash outlook and aged AP | never stored; terms from the purchase order, then the vendor's default, then `AP_DEFAULT_TERMS`, named by `termsSource` (AW33; S19, louisburroughs/durion-positivity-backend#2515) |
-| Seed | accounts 1080, 3000, 3900, 6295, 6375, 6380 (AW30); renumbering (§4.6); retread add-on per tenant; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`, `OPENING_BALANCE`; settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION`; (CAD, pending AW56) 6050 Cash Rounding, category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE` | repeatable seeds |
+| Seed | accounts 1080, 3000, 3900, 6295, 6375, 6380 (AW30); renumbering (§4.6); retread add-on per tenant; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`, `OPENING_BALANCE`; settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION`; (CAD, AW56) 6050 Cash Rounding, category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE` | repeatable seeds |
 | Seed (AW44) | Account 2240 Use Tax Payable (LIABILITY) and the `VENDOR_BILL` key `USE_TAX_PAYABLE` | Repeatable seed; S37 provisions every tenant |
 | Seed (AW38–AW41) | Accounts 2100, 5050, 5060, with statement lines `BS_DELIVERIES_NOT_BILLED` ("Deliveries not yet billed") and `IS_COST_OF_PARTS_SOLD`; categories `GOODS_RECEIPT`, `VENDOR_BILL`, `AP_PAYMENT` with their keys and mappings (AW40); no posting-rule versions | Repeatable seed; S37 provisions every tenant |
 | Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path; `APPROVED → VOIDED` (AW42) | DB check constraint |
@@ -1175,7 +1175,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW53 | Supplier-registration evidence is one pos-tax stub rule (100.00 CAD, `appliesTo` drawer receipts and vendor bills; placeholders, configurable); a bill compares its gross and the vendor copy's number; missing → no recovery (`SUPPLIER_REGISTRATION_MISSING`), automatic approval held. Threshold and scope held (OI-4) | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553) | §4.7; S31, S32, S33 |
 | AW54 | Cash rounding posts in the cash application's entry: Dr 1090 tendered / Cr 1200 settled / the difference on `CASH_ROUNDING` / `CASH_ROUNDING_DIFFERENCE`; the cash payment fact carries the amount settled and the signed rounding; `CASH` only and at most half the cash increment, else `SUSPENDED` / `CASH_ROUNDING_INVALID`; never drawer variance; no tax on the line (stub, OI-4) | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553) | §4.6, §7.1, §7.3; S32; ADR-0067 A8 |
 | AW55 | Receipt-tax plausibility, per tax: maximum = `T × r / (1 + r)` rounded up to the minor unit plus a configurable tolerance, default 5 minor units; `r` from the pos-tax stub; no combined-rate bound | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553) | §4.7; S31, S32 |
-| AW56 | Proposed CAD cash-rounding account 6050 Cash Rounding (EXPENSE / OPERATING_EXPENSE, computed `IS_OTHER_EXPENSES`), category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE`, CAD tenants only; **pending the platform owner's confirmation (ADR-0067 PC-7 (b), OI-21)** | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553), proposal to the platform owner | §4.6, §7.1; S32 |
+| AW56 | CAD cash-rounding account 6050 Cash Rounding (EXPENSE / OPERATING_EXPENSE, computed `IS_OTHER_EXPENSES`), category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE`, CAD tenants only (ADR-0067 PC-7 (b)) | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553), proposed; confirmed by the platform owner (2026-10-08, OI-21) | §4.6, §7.1; S32 |
 | AW57 | Phase 6 accounting codes against five pos-tax stubs: typed Canadian rates with recoverability, registration status as of a date, number shape, evidence rule, plausibility; the evidence-sourced rate seed, AvaTax Canadian mapping, number formats and evidence tiers wait for expert advice | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553) | §4.7, §7.3; S31, S32, S33 |
 
 ---
@@ -1252,7 +1252,7 @@ to show the hold and the override. AW48–AW57 (2026-10-08) re-scope S31 to the 
 louisburroughs/durion-positivity-backend#2522 and #2523; S32's Q3 default is reversed: the share at entry applies). S33 shows the stubbed values as
 placeholders and the AW51 / AW53 bill checks.
 
-Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553, answered 2026-10-08 under the stub rule (AW48–AW57; questions 1–2 are OI-22, the rounding account OI-21) · extraction
+Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553, answered 2026-10-08 under the stub rule (AW48–AW57; questions 1–2 are OI-22; the owner confirmed the rounding account, OI-21) · extraction
 provider louisburroughs/durion#549.
 
 ---
@@ -1281,7 +1281,7 @@ provider louisburroughs/durion#549.
 | OI-18 | Clearing old 2100 residuals (quantity and price differences no bill or receipt will clear): a guided command and its N-day threshold; until then a journal entry to 5050 with a justification | Accounting Domain Agent |
 | OI-19 | **Resolved 2026-10-07 as a stub (AW44):** tax on resale goods holds the bill unless overridden per bill or per vendor; use tax from a pos-tax `USE` stub accrues to 2240. Still open for research with a US accountant: which purchases are taxable, per-state rules, and filing (louisburroughs/durion-positivity-backend#2599; S43 #2604) | Platform owner with a US accountant |
 | OI-20 | `currencyCode` and per-line cost basis on `goodsreceipt.recorded`, and a costed return-to-vendor fact (AW38; louisburroughs/durion-positivity-backend#2598). Landed cost (capitalising freight and non-recoverable tax): #2600 | Inventory |
-| OI-21 | Confirm the CAD cash-rounding account: proposed 6050 Cash Rounding, category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE` (AW56; ADR-0067 PC-7 (b)); until then nothing is seeded | Platform owner |
+| OI-21 | **Resolved 2026-10-08:** the CAD cash-rounding account is 6050 Cash Rounding, category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE` (AW56; ADR-0067 PC-7 (b)); S32 seeds it for CAD tenants | Platform owner |
 | OI-22 | How tax registrations reach pos-accounting and pos-order (a `tax.registration.changed` fact or a cached synchronous read of pos-tax), and how a person records one when pos-tax has no gateway route (ADR-0021 §3; the exemption registry has the same gap). Accounting needs only the flags as of a business date (AW49) | Chief Architect (louisburroughs/durion#553 questions 1–2) |
 
 ---
