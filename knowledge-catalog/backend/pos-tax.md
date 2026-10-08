@@ -1,12 +1,12 @@
 ---
 type: Module
 title: pos-tax
-description: Tax calculation service with external API passthrough and test mode support
+description: 'Tax stubs that let pos-accounting stories begin: placeholder rates and rules, not tax law, held for expert advice (see the stub register in README.md)'
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax
 path: durion-positivity-backend/pos-tax/
 tags: [backend, service, accounting]
 sources: [durion-positivity-backend/pos-tax/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-29T00:32:06Z'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-08T11:33:29+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax) — `pos-tax/`

@@ -36,7 +36,7 @@
 * [pos-shared-dtos](pos-shared-dtos.md) — Shared DTO library for cross-module communication
 * [pos-shop-manager](pos-shop-manager.md) — Module to manage vehicle repair shops
 * [pos-supplier](pos-supplier.md) — POS Supplier integration module (outbound supplier connectivity, ADR-0049..0052)
-* [pos-tax](pos-tax.md) — Tax calculation service with external API passthrough and test mode support
+* [pos-tax](pos-tax.md) — Tax stubs that let pos-accounting stories begin: placeholder rates and rules, not tax law, held for expert advice (see…
 * [pos-tax-common](pos-tax-common.md) — Shared DTOs and validation types for consuming POS Tax APIs
 * [pos-tenancy-common](pos-tenancy-common.md) — ADR-0062 tenancy runtime: tenant context, connection binding, Hibernate resolver, Kafka propagation, classification ann…
 * [pos-tenant](pos-tenant.md) — Tenant registry and the accounts that own each tenancy (ADR-0062 section 7)
