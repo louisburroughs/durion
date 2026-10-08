@@ -86,16 +86,23 @@ appear.
 
 | Class | What it covers | Where it may appear |
 | --- | --- | --- |
-| **RESTRICTED** | Personal government identifiers; **every tax-registration number, whatever its scheme**; bank-account and card data; credentials and secrets | Only in the owner's store, encrypted at field level (Decision 3), and in a reveal response (Decision 4). Elsewhere only as a masked derivative (Decision 2) |
+| **RESTRICTED** | Personal government identifiers; **every counterparty's tax-registration number, whatever its scheme**; bank-account and card data; credentials and secrets | Only in the owner's store, encrypted at field level (Decision 3), and in a reveal response (Decision 4). Elsewhere only as a masked derivative (Decision 2) |
 | **CONFIDENTIAL** | Names, postal addresses and e-mail addresses of natural persons; masked derivatives such as `last4` | On a fact, in a replica where ADR-0044 R3 needs them, and in API responses. Never logged at INFO or above, never a metric tag; a masked derivative is never logged at all |
 | **INTERNAL** | Everything else: identifiers, statuses, amounts, dates, business references, configuration | Anywhere the module's own rules allow, at the log levels of ADR-0046 |
 | **PUBLIC** | Data the platform publishes outside the tenant on purpose, such as published API reference material | Anywhere. A value is PUBLIC only when a decision says so |
 
 - **RESTRICTED in detail:**
   - government-issued identifiers of natural persons: SSN, SIN, ITIN and any other personal taxpayer id;
-  - every tax-registration number, business numbers included: EIN, BN / GST-HST, QST and VAT;
+  - every tax-registration number of a counterparty (a vendor, payee or customer), business numbers included: EIN, BN / GST-HST, QST and VAT;
   - bank-account and card data: account and routing numbers, IBAN, card number, CVV (OI-14 is the precedent);
   - credentials and secrets: passwords, API keys, tokens and private keys.
+- **Recoverable and non-recoverable RESTRICTED values.** Decisions 3 and 4 (encryption and reveal) apply only to values the owner must be able to read
+  back: identifiers, registration numbers and bank-account data. A value the platform must never recover is never encrypted for later reading and never
+  revealable: a CVV is not stored after authorisation, a password is stored only as a one-way verifier, and other credentials stay secret-store references
+  (ADR-0050 §4). Decision 2 applies to both kinds.
+- **The tenant's own registrations.** A tenant's own tax-registration numbers (ADR-0071 §7) are printed on every invoice and receipt the tenant issues, so
+  they are INTERNAL, not RESTRICTED, and `tax.registration.changed` may carry them. This scoping narrows the Security ruling's "every tax-registration
+  number" to counterparties and needs the Security & Authorization Domain's confirmation before acceptance.
 - **CONFIDENTIAL in detail:** names, postal addresses and e-mail addresses of natural persons, sole-proprietor vendors included, and the masked derivatives
   of RESTRICTED values (`last4`).
 
@@ -123,6 +130,10 @@ Outside the owning service only a **masked derivative** may appear. The derivati
 - **CONFIDENTIAL:** `last4` may travel on a fact, sit in a replica and appear in API responses; it is never logged at any level and never used as a metric
   tag.
 - **Presence is the derivative too.** Being on a fact's list means the value is on file; consumers need no separate flag.
+- **Attributes beside a derivative cannot hold the value.** A non-restricted attribute that travels next to a derivative (such as a registration's
+  `scheme` or `region`) is INTERNAL only when its accepted shape cannot hold a RESTRICTED value. Until a closed vocabulary exists, the owner enforces a
+  shape: for registrations, `scheme` is letters, spaces, `/` and `-` only, at most 16 characters, with no digit; `region` is an ISO 3166-2 code
+  (`^[A-Z]{2}(-[A-Z0-9]{1,3})?$`). A value outside the shape is refused (400 `VALIDATION_ERROR`) without echoing it.
 
 Owners **accept** the RESTRICTED values they legitimately need, personal identifiers included (Security ruling 5), and protect them under Decisions 3 and 4,
 rather than refusing them.
@@ -140,8 +151,9 @@ not protect against SQL readers, `pg_dump` backups, support sessions or a restor
   a committed file.
 - **Bind each ciphertext to its row.** The AAD also carries the tenant id, the aggregate id and the element id, so a ciphertext copied into another row,
   aggregate or tenant fails authentication.
-- **Fail-closed key policy.** Startup fails when the key is missing unless every active profile is `dev` or `test`, where an ephemeral key and one WARN
-  are allowed. The failure message names the environment variable and never prints key material.
+- **Fail-closed key policy.** Startup fails when the key is missing unless at least one profile is active and every active profile is `dev` or `test`;
+  only then are an ephemeral key and one WARN allowed. No active profile (the default) fails like any other. The failure message names the
+  environment variable and never prints key material.
 - **Masked reads never decrypt.** The derivative is stored next to the ciphertext and read from there.
 - **Migrating existing data.** A SQL migration cannot hold the key, so clear values already stored are encrypted by a **Flyway Java migration**
   (a `JavaMigration` registered as a Spring bean, which Spring Boot hands to Flyway) with the cipher injected. It is idempotent, honours row-level security
@@ -159,6 +171,10 @@ not protect against SQL readers, `pg_dump` backups, support sessions or a restor
 - **A POST with a reason.** `POST .../{elementId}/reveal` with body `{reason}`, trimmed, at least 10 characters (otherwise 400 `JUSTIFICATION_REQUIRED`) and
   at most 500 (otherwise 400 `VALIDATION_ERROR`). POST, because the call writes an audit row, and so that it stays out of caches and URL logs. The
   response carries the value with `Cache-Control: no-store`.
+- **The reason cannot carry the value.** The reason is CONFIDENTIAL: it is never logged and appears only in the audit row and its audit read. Before the
+  row is written, the service compares the reason, with every non-alphanumeric character removed, against the stored value in the same form; a reason that
+  contains the value is refused (400 `VALIDATION_ERROR`, without echo) and nothing is revealed. A controlled reason code in place of free text is an
+  option for Security to choose.
 - **Audit in the same transaction, fail-closed.** Before the value is returned, the service inserts one append-only, tenant-scoped audit row in the same
   transaction: the actor from the security context (ADR-0018, ADR-0022), the actor's roles, the aggregate and element ids, the non-restricted attributes
   (such as the scheme), the reason, the correlation id, the time and the outcome. The row never holds the value or its derivative. If the insert fails,
@@ -342,6 +358,8 @@ The four options weighed in louisburroughs/durion-positivity-backend#2617, and t
   `--from-beginning`.
 - **CHK-007:** A pull request that withdraws a field in place records the consumer search, the counts-only check and the purge offsets.
 - **CHK-008:** A pull request that adds a payload or replica field which can hold a CONFIDENTIAL or RESTRICTED value states its class in the description.
+- **CHK-009:** A reveal whose reason contains the stored value is refused with nothing revealed and no echo; a `scheme` containing a digit, or a `region`
+  outside the ISO 3166-2 shape, is refused without echo.
 
 ### Changes required in other ADRs
 
@@ -350,8 +368,12 @@ Applied as dated amendments when this ADR is accepted; until then each carries a
 - **ADR-0044 §3:** the in-place withdrawal of a RESTRICTED field (Decision 7).
 - **ADR-0070 Decision 7:** the vendor fact carries tax registrations as `{scheme, region, last4}` and no full number (Decision 8).
 
-No change: ADR-0046 (log levels), ADR-0050 §7 (its cipher is reused), ADR-0062 (tenant isolation), ADR-0071 (the tenant's own tax registrations, owned by
-pos-tax, are not vendor data; their numbers are RESTRICTED under Decision 1 when a fact carries them).
+No change: ADR-0046 (log levels), ADR-0050 §7 (its cipher is reused), ADR-0062 (tenant isolation). ADR-0071 is unchanged only because Decision 1
+classes the tenant's own registration numbers INTERNAL: `tax.registration.changed` and the `ext_tax_registration` replicas keep the number. If Security
+does not confirm that scoping, ADR-0071 §7 (and AW58) need their own amendment before this ADR is accepted.
+
+The accounting specification ([SPEC-accounting-workspace.md](../../domains/accounting/SPEC-accounting-workspace.md) §4.9 "Vendors (AW23)") carries a
+matching pending note on the vendor fact and accounting's copy.
 
 ---
 
@@ -394,3 +416,6 @@ pos-tax, are not vendor data; their numbers are RESTRICTED under Decision 1 when
 
 - **2026-10-08**: Initial draft from the Chief Architect analysis and the Security ruling on louisburroughs/durion-positivity-backend#2617; pending notes
   added to ADR-0044 §3 and ADR-0070 Decision 7.
+- **2026-10-08**: Review fixes (PR louisburroughs/durion#571): non-recoverable secrets are never encrypted for reading or revealable; the tenant's own
+  registration numbers are INTERNAL (ADR-0071 unchanged, Security to confirm); attributes beside a derivative get a shape that cannot hold the value; a
+  reveal reason may not contain the value; an empty profile set fails the key policy; a pending note in the accounting specification.
