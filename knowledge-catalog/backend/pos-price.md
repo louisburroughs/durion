@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-price/
 tags: [backend, service, pricing]
 sources: [durion-positivity-backend/pos-price/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-29T00:32:06+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-29T00:32:06Z'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-price) — `pos-price/`

@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/architecture
 path: durion/docs/architecture/deployment/devops-framework/README.md
 tags: [platform, architecture]
 sources: [durion/docs/architecture/deployment/devops-framework/README.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-07-10T06:13:04+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-07-10T06:13:04Z'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/deployment/devops-framework/README.md) — `durion/docs/architecture/deployment/devops-framework/README.md`

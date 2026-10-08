@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-documents/
 tags: [backend, service, accounting]
 sources: [durion-positivity-backend/pos-documents/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-29T00:39:24+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-29T00:39:24Z'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-documents) — `pos-documents/`

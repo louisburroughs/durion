@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/architecture
 path: durion/docs/architecture/plans/tenant-organization-name-execution-plan.md
 tags: [platform, architecture]
 sources: [durion/docs/architecture/plans/tenant-organization-name-execution-plan.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-13T20:45:43+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-13T20:45:43Z'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/plans/tenant-organization-name-execution-plan.md) — `durion/docs/architecture/plans/tenant-organization-name-execution-plan.md`

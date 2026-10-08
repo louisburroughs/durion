@@ -9,7 +9,7 @@ kind: Plan
 status: stable
 doc_status: active
 sources: [durion/docs/architecture/plans/people-employee-register-execution-plan.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T02:00:09+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T02:00:09Z'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/plans/people-employee-register-execution-plan.md) — `durion/docs/architecture/plans/people-employee-register-execution-plan.md`

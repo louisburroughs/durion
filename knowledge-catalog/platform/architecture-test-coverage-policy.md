@@ -9,7 +9,7 @@ kind: Architecture
 status: stable
 doc_status: Current
 sources: [durion/docs/architecture/TEST_COVERAGE_POLICY.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-21T02:11:47+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-21T02:11:47Z'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/TEST_COVERAGE_POLICY.md) — `durion/docs/architecture/TEST_COVERAGE_POLICY.md`
