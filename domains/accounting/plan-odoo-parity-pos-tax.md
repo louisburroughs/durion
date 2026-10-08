@@ -2,7 +2,7 @@
 
 > Status: ACCEPTED · Created 2026-07-17 · Branch: `claude/pos-accounting-odoo-parity-idfuje`
 >
-> **2026-10-08 — pos-tax is a collection of stubs (AW45, [SPEC-accounting-workspace.md](SPEC-accounting-workspace.md) §10).** It exists to let
+> **2026-10-08 — pos-tax is a collection of stubs (AW48, [SPEC-accounting-workspace.md](SPEC-accounting-workspace.md) §10).** It exists to let
 > pos-accounting stories begin; every tax question is held for expert advice. No further tax-engine story is cut from this plan until that
 > advice is recorded. Accounting stories go ahead against the registered stubs: a tax function accounting needs is stubbed in pos-tax and listed
 > in the stub register of `durion-positivity-backend/pos-tax/README.md`, and the advised rule later replaces the stub's placeholder behaviour.

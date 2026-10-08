@@ -60,10 +60,10 @@ The `accounting-domain-agent` **MAY use imagination** to author user stories wit
 * “Is tax calculated here or upstream?”
 * “What is the authoritative accounting system?”
 
-### Tax is stubbed (AW45)
+### Tax is stubbed (AW48)
 
 pos-tax is a collection of stubs. Its purpose is to let pos-accounting stories begin (platform owner, 2026-10-08;
-`durion/domains/accounting/SPEC-accounting-workspace.md` AW45). Every tax question is held for expert advice and
+`durion/domains/accounting/SPEC-accounting-workspace.md` AW48). Every tax question is held for expert advice and
 stubbed in this version: rates, which supplies are taxable, what is recoverable and at what share, evidence
 thresholds, registration formats, claim limits and filing. The agent therefore:
 
