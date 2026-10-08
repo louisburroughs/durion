@@ -134,8 +134,9 @@ connection: `vendorId` (UUIDv7), `vendorNumber` (ADR-0064 business reference), `
 - Bank details for electronic payment are not part of this decision: they never travel on Kafka, and where they (or provider tokens) live is decided when
   electronic vendor payments are introduced (specification OI-14).
 
-*Amended by [ADR-0072](0072-data-classification-event-payload-minimisation.adr.md) Decision 8, pending acceptance of ADR-0072: the fact carries tax
-registrations as `{scheme, region, last4}` only, never a full number.*
+*Amended 2026-10-08 by [ADR-0072](0072-data-classification-event-payload-minimisation.adr.md) Decision 8: the fact carries every vendor field except bank
+details and full tax-registration numbers. Tax registrations travel as `{scheme, region, last4}` at `schemaVersion` 2; the full number stays in pos-supplier,
+encrypted and revealed only through `supplier:vendor_tax_id:reveal`.*
 
 ### 8. Source files stay in pos-accounting behind a `FileStore` port
 
@@ -287,3 +288,4 @@ Applied 2026-10-05 as dated amendments in each ADR, except the v2 X12 855 / 856 
 - **2026-10-05**: ADR-0044 §1, ADR-0049 §1–§3 and ADR-0050 §2 / §6 amended as listed under "Changes required in other ADRs".
 - **2026-10-08**: Decision 5 amended with the extraction provider and its terms chosen by the Platform Owner (louisburroughs/durion#549; specification
   AW60–AW66).
+- **2026-10-08**: Decision 7 amended by ADR-0072 Decision 8: the vendor fact carries masked tax registrations and no full number.

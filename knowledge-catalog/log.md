@@ -2,6 +2,8 @@
 
 ## 2026-10-08
 
+* **Updated**: `adr/0072-data-classification-event-payload-minimisation.md` to `status: stable` for ADR-0072's acceptance. ADR-0044 and
+  ADR-0070 carry the applied amendments; their entries' text is unchanged, so they are not restamped here.
 * **Regenerated**: 72 ADR, 16 domain, 47 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
 * **Added**: `adr/0071-tax-per-tenant-pluggable-providers.md` for the accepted ADR-0071; `adr/index.md` and the root index count it.
   `adr/0021` takes ADR-0021's corrected description (its 2026-10-08 amendment), and `adr/0044` and `backend/pos-tax.md` are restamped.

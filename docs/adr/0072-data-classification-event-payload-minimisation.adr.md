@@ -2,24 +2,23 @@
 type: ADR
 title: 'ADR-0072: Data Classification and Minimisation for Event Payloads, Replicas, Logs and DLQs'
 description: Four data classes; RESTRICTED values stay encrypted in their owner, revealed only by permission with audit, and only masked forms such as last4 travel.
-status: draft
-adr_status: proposed
+status: stable
+adr_status: accepted
 created: '2026-10-08'
 related: [ADR-0018, ADR-0022, ADR-0044, ADR-0046, ADR-0050, ADR-0062, ADR-0065, ADR-0070, ADR-0071]
 tags: [adr, events, platform, security, supplier]
 ---
 # ADR-0072: Data Classification and Minimisation for Event Payloads, Replicas, Logs and DLQs
 
-**Status:** PROPOSED **Date:** 2026-10-08 **Deciders:** Platform Owner (acceptance pending), Chief Architect, Security & Authorization Domain
+**Status:** ACCEPTED **Date:** 2026-10-08 (accepted 2026-10-08) **Deciders:** Platform Owner, Chief Architect, Security & Authorization Domain
 **Affected Issues:** louisburroughs/durion-positivity-backend#2617 (analysis and ruling), louisburroughs/durion-positivity-backend#2621 (first application),
 louisburroughs/durion-positivity-backend#2517 (S24), louisburroughs/durion#550 (CAP:550)
 
-> **How to read this.** This record is **PROPOSED**. The Platform Owner reviews it before it is accepted; until then no decision below is in force. It
-> writes down, as platform policy, the Chief Architect analysis of louisburroughs/durion-positivity-backend#2617 (comment 6062021008) and the Security &
-> Authorization Domain's ruling on the same issue (comment 6062214186, rulings 1-9), both dated 2026-10-08. Each "Proposed decision" below becomes
-> ✅ **Resolved** on acceptance. Its two amendments, to [ADR-0044](0044-platform-event-only-domain-walls.adr.md) §3 and
-> [ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md) Decision 7, are a **merge gate** for #2621: that story may be implemented now, but its
-> pull request must not merge until this ADR is ACCEPTED.
+> **How to read this.** ✅ **Resolved** marks a decision this ADR makes. It writes down, as platform policy, the Chief Architect analysis of
+> louisburroughs/durion-positivity-backend#2617 (comment 6062021008) and the Security & Authorization Domain's ruling on the same issue (comment
+> 6062214186, rulings 1-9), both dated 2026-10-08. The Platform Owner's review added five implementation considerations (IC-001 to IC-005), which
+> acceptance folds into Decisions 4, 5, 7 and 9. Its two amendments, to [ADR-0044](0044-platform-event-only-domain-walls.adr.md) §3 and
+> [ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md) Decision 7, are in force, so #2621 may merge once its own checks pass.
 
 ---
 
@@ -81,7 +80,7 @@ DLQ; the `pos-domain-events` contract tests; and the backend operations runbook.
 
 ### 1. Four data classes
 
-**Proposed decision:** Every field the platform stores, publishes, copies or logs belongs to one of four classes. The class decides where the value may
+✅ **Resolved:** Every field the platform stores, publishes, copies or logs belongs to one of four classes. The class decides where the value may
 appear.
 
 | Class | What it covers | Where it may appear |
@@ -130,7 +129,7 @@ appear.
 
 ### 2. RESTRICTED values never leave their owner
 
-**Proposed decision:** A RESTRICTED value never appears:
+✅ **Resolved:** A RESTRICTED value never appears:
 
 - on Kafka: a topic, a DLQ, a replay, or the owner's outbox payload from which those are published;
 - in a consumer replica, or in its backups;
@@ -157,7 +156,7 @@ rather than refusing them.
 
 ### 3. At rest: field-level encryption under a per-purpose key
 
-**Proposed decision:** The owning service encrypts each RESTRICTED value at field level. Database or disk encryption alone is not enough, because it does
+✅ **Resolved:** The owning service encrypts each RESTRICTED value at field level. Database or disk encryption alone is not enough, because it does
 not protect against SQL readers, `pg_dump` backups, support sessions or a restored copy.
 
 - **Envelope:** the `AuditPayloadCipher` pattern from pos-supplier (ADR-0050 §7): AES-256-GCM, a header `version | keyIdLen | keyId` used as AAD, a random
@@ -179,7 +178,7 @@ not protect against SQL readers, `pg_dump` backups, support sessions or a restor
 
 ### 4. The reveal pattern
 
-**Proposed decision:** A person sees a full RESTRICTED value only through a dedicated, audited reveal call.
+✅ **Resolved:** A person sees a full RESTRICTED value only through a dedicated, audited reveal call.
 
 - **Masked by default.** Every read, list and write response returns the masked shape (for an identifier `{elementId, ..., last4}`), never the value.
 - **Dedicated permission `<domain>:<resource>:reveal`.** The resource names the data class (as `people:employee_pii:view` does), and the action is
@@ -194,15 +193,21 @@ not protect against SQL readers, `pg_dump` backups, support sessions or a restor
   the lookup. A refused attempt writes the audit row with outcome `REASON_REJECTED` and a null reason. The reason stays free text (Security ruling 4).
 - **Audit in the same transaction, fail-closed.** Before the value is returned, the service inserts one append-only, tenant-scoped audit row in the same
   transaction: the actor from the security context (ADR-0018, ADR-0022), the actor's roles, the aggregate and element ids, the non-restricted attributes
-  (such as the scheme), the reason, the correlation id, the time and the outcome. The row never holds the value or its derivative. If the insert fails,
-  the call fails and **reveals nothing**; the insert never runs in a separate (`REQUIRES_NEW`) transaction or after the value is returned.
+  (such as the scheme), the reason, the correlation id, the time and the outcome. The row never holds the value or its derivative. The value is released
+  only after that transaction commits: if the insert or the commit fails, the call fails and **reveals nothing**; the insert never runs in a separate
+  (`REQUIRES_NEW`) transaction or after the value is returned.
+- **Every audited outcome commits.** The transactional service returns an explicit outcome (`REVEALED`, `REASON_REJECTED`, `UNREADABLE`) and never throws
+  an unchecked exception after writing a row, because that rolls the row back (Spring's default rollback rule). Only after commit does the controller map
+  the outcome to 200, 400 or 500.
 - **Refusals reveal nothing.** A 403 or 404 writes no row; a reason refused under the rule above writes a `REASON_REJECTED` row. A decryption failure
   answers 500 with a module-specific `..._UNREADABLE` code, is logged with ids and the key id only, and is audited with outcome `UNREADABLE` with a null
   reason, because the reason cannot be checked against a value that could not be read.
 - **Reviewed by someone else.** Reveal rows are read through the module's audit-read permission, held where possible by roles other than the revealers.
 - **Writes under masking.** Each stored element has a stable id (UUIDv7). An update that sends the id without a value keeps the stored ciphertext; changing
   an attribute that describes the value (such as its scheme or region) requires re-entering the value; an unknown id is 400 `VALIDATION_ERROR`; an omitted
-  element is removed. Change detection compares ids and stored attributes, never ciphertext.
+  element is removed. A supplied value is always a change, even when its id and attributes are unchanged: the owner re-encrypts it, recomputes and stores
+  its derivative, and publishes the masked fact. Change detection otherwise compares ids and stored attributes, and never uses ciphertext or `last4`
+  equality to decide that a write changed nothing.
 - **Never an agent tool.** A reveal operation, and any other operation whose response carries a RESTRICTED value, is never exposed as an MCP tool or
   called by pos-mcp-server or any other LLM-driven caller. Its value would enter a model's context, its provider and the conversation store (Decision 2),
   and its reason must be a person's own justification (ADR-0018). Such an operation is protected by a permission whose action is `reveal`; that action is
@@ -216,22 +221,27 @@ audit table read through `supplier:audit:read` (#2621).
 
 ### 5. DLQ inspection and runbook handling
 
-**Proposed decision:** Operators handle DLQ and topic contents so that no value leaves the broker host, for every topic, not only the supplier topics.
+✅ **Resolved:** Operators handle DLQ and topic contents so that no value is copied beyond the operator's permitted terminal session, for every topic, not
+only the supplier topics.
 
-- **Metadata by default.** The standard inspection command prints metadata only:
-  `--property print.value=false --property print.key=true --property print.headers=true --property print.partition=true --property print.offset=true
-  --property print.timestamp=true`.
-- **One record at a time.** A value may be printed only for one named record: `--partition N --offset M --max-messages 1`.
+- **Metadata by default.** The standard inspection command prints an allowlist of safe metadata only:
+  `--property print.value=false --property print.headers=false --property print.key=true --property print.partition=true --property print.offset=true
+  --property print.timestamp=true`. Headers are not safe metadata: `DeadLetterPublishingRecoverer` writes the exception message and stack trace into
+  dead-letter headers, and a legacy record's exception can hold payload text.
+- **One record at a time.** A value, or a record's headers, may be printed only for one named record: `--partition N --offset M --max-messages 1`.
+- **Permitted terminals.** Running the command through `docker exec` on the broker host does not keep its output there: a remote terminal, scrollback or
+  session recording can carry or keep it. The runbook names the terminal and recording arrangements allowed for single-record inspection.
 - **Never `--from-beginning`** with values printed, on a DLQ or any other topic.
 - **Never paste a value anywhere.** Output stays in the operator's terminal. It is never pasted into an issue, pull request, ticket or chat, and never
   redirected to a file.
 - **Consumers** never put payload text in an exception message bound for a DLQ or a log. Jackson's source inclusion in parse-error locations stays off
   (its default); a module that turns it on breaks this rule.
-- A restricted inspection host is not required: the command already runs inside the broker container through `docker exec` on the host (Security ruling 7).
+- A restricted inspection host is not required: the command already runs inside the broker container through `docker exec` on the host (Security ruling 7),
+  within the permitted terminal arrangements above.
 
 ### 6. The contract-test guard
 
-**Proposed decision:** `DomainEventContractTest` in `pos-domain-events` carries a field-name guard (`noRestrictedFieldNames`), parameterised over every
+✅ **Resolved:** `DomainEventContractTest` in `pos-domain-events` carries a field-name guard (`noRestrictedFieldNames`), parameterised over every
 event record it scans.
 
 - It walks record components **recursively**: nested records, `List`, `Set` and `Map` element types, and arrays.
@@ -246,7 +256,7 @@ event record it scans.
 
 ### 7. Amendment to ADR-0044 §3: withdrawing a RESTRICTED field in place
 
-**Proposed decision:** ADR-0044 §3 keeps its rule that payload changes within a version are additive-only, with one exception. A **RESTRICTED** field may be
+✅ **Resolved:** ADR-0044 §3 keeps its rule that payload changes within a version are additive-only, with one exception. A **RESTRICTED** field may be
 withdrawn from a live payload **in place**, on the same `eventType` and topic, with **no `.v2` topic and no dual-publish**, only when all of the following
 hold:
 
@@ -257,31 +267,45 @@ hold:
 4. **Consumers apply only the new version.** A consumer marks an older-version event of that type processed, counts it (metric tags `eventType` and
    `schemaVersion` only), skips it and never logs its payload. Replicas are seeded from the owner's replay (ADR-0044 §4 bootstrap).
 
-After the new publisher is deployed and every consumer group on the topic shows zero lag, records up to the high-water mark on every partition of the topic
-and its DLQ are deleted with `kafka-delete-records.sh`, and the offsets are recorded on the pull request; other event types in that range stay replayable
-from the outbox. Dual-publishing is ruled out because it would keep the RESTRICTED value on the topic for the whole migration window. A field that a
+**Rollout and purge sequence.** No old publisher or writer may recreate a clear payload after the scrub:
+
+1. Deploy consumers that accept the new `schemaVersion` before anything publishes it.
+2. Stop every old writer and publisher of the event type.
+3. Run the backfill (Decision 3) and the outbox scrub, then start the new publisher.
+4. Capture a **fixed** cutoff offset per partition of the topic and its DLQ, taken after the last possible old-format publication. A moving high-water mark
+   is never the deletion boundary.
+5. Verify that every consumer group has committed past the cutoffs. Zero lag on the topic says nothing about the DLQ, so inventory the event type's DLQ
+   records separately and record, for each, its recovery by a sanitised replay or its approved disposition.
+6. Delete records up to the cutoffs with `kafka-delete-records.sh`. Other event types in that range stay replayable from the outbox.
+
+The cutoffs and the DLQ recovery evidence go on the pull request. Dual-publishing is ruled out because it would keep the RESTRICTED value on the topic for the whole migration window. A field that a
 consumer does read is outside this exception and needs its own amendment, reviewed by Security.
 
 ### 8. Amendment to ADR-0070 Decision 7: the vendor fact carries masked registrations
 
-**Proposed decision:** `supplier.vendor.updated` carries every vendor field **except bank details and full tax-registration numbers**. Tax registrations
+✅ **Resolved:** `supplier.vendor.updated` carries every vendor field **except bank details and full tax-registration numbers**. Tax registrations
 travel as `{scheme, region, last4}` at `schemaVersion` 2 (Decision 7 above); a registration on the list means its number is on file. The full number stays
 in pos-supplier, encrypted (Decision 3) and revealed only through `supplier:vendor_tax_id:reveal` (Decision 4). No `ext_supplier_vendor` copy holds a full
 number: pos-accounting's copy holds `tax_registrations` as `[{scheme, region, last4}]`, and the pos-order and pos-inventory copies hold no registrations.
 
 ### 9. Incident rule
 
-**Proposed decision:** Before any scrub or purge of a RESTRICTED value, the implementer runs a **read-only, counts-only** check in every environment that
-holds data (alpha: through SSM, as `pos_user`): the values grouped by their non-restricted attributes (for registrations, by `scheme`), and the number of
-aggregates holding at least one. The output is counts, never values, and goes on the pull request.
+✅ **Resolved:** Before any scrub or purge of a RESTRICTED value, the implementer runs a **read-only, counts-only** check in every environment that
+holds data (alpha: through SSM, as `pos_user`): the values grouped by their non-restricted attributes, and the number of aggregates holding at least one.
+The output is counts, never values, and goes on the pull request.
 
-- **Zero, or synthetic test entries only:** a pre-production security defect, closed by the implementing story. Not a data incident.
+- **Group only by validated attributes.** An attribute that predates its shape rule (Decision 2) may itself hold a RESTRICTED value, so its raw content is
+  never printed: a legacy value that fails the shape counts in one fixed bucket (for registrations, `scheme` outside the shape counts as `UNVALIDATED`).
+- **Provenance, not appearance.** Counts cannot show that an entry is synthetic. Entries whose fixture provenance is verified (for example, seeded by a
+  named test or migration with a fake value from Decision 10) are counted apart from entries of unknown provenance, and the evidence for that provenance
+  goes on the pull request with the counts. Unknown provenance is treated as potentially real.
+- **Zero, or entries of verified fixture provenance only:** a pre-production security defect, closed by the implementing story. Not a data incident.
 - **Any value that may belong to a real person or business:** stop. It is a **data incident**, escalated to the Platform Owner, who decides on
   notification and on early destruction of backups. Nothing further is deleted before that decision, except the broker purge of Decision 7.
 
 ### 10. Test data
 
-**Proposed decision:** Tests, fixtures, examples, OpenAPI `@Schema` examples and documents use obviously fake RESTRICTED values only, never real or
+✅ **Resolved:** Tests, fixtures, examples, OpenAPI `@Schema` examples and documents use obviously fake RESTRICTED values only, never real or
 realistic-looking ones: `000-00-1234` (SSN shape; area 000 is never issued), `000000000RT0001` (BN shape), `FAKE1234`, and `FAKE-123` (seven alphanumerics,
 so `last4` is `null`). Assertions compare against constants and never print the value in a failure message.
 
@@ -357,16 +381,47 @@ The four options weighed in louisburroughs/durion-positivity-backend#2617, and t
 
 - **IMP-001: First application.** louisburroughs/durion-positivity-backend#2621 minimises `supplier.vendor.updated` at `schemaVersion` 2, encrypts and
   masks registrations in pos-supplier, adds `supplier:vendor_tax_id:reveal` and its audit, scrubs the outbox, adds the contract guard and changes the
-  runbook. It may be implemented now; it merges only after this ADR is ACCEPTED.
+  runbook. This ADR is ACCEPTED, so it merges once its own checks pass.
 - **IMP-002: Order.** #2621 merges before S24 (#2517), whose copy and `schemaVersion >= 2` consumer rule the Accounting Domain amends from the Security
   ruling. #2615 needs a wording change only (`payeeTinLast4` reads the copy's `last4`). The vendor pages (louisburroughs/durion-positivity-frontend#469)
   show `last4` and the reveal action. The closed scheme vocabulary is a later pos-tax stub.
 - **IMP-003: Migration.** The Java backfill (Decision 3), then the SQL outbox scrub (Decision 7), at the next free pos-supplier Flyway versions; the
-  counts-only check before both (Decision 9); the broker and DLQ purge after deploy, with the offsets on the pull request.
+  counts-only check before both (Decision 9); the broker and DLQ purge after deploy, in Decision 7's sequence, with the fixed cutoffs and the DLQ recovery
+  evidence on the pull request.
 - **IMP-004: Contract chain.** Controller, DTO, event and permission changes run **API Artifacts Sync** after the push, as for any OpenAPI or permission
   change.
 - **IMP-005: Existing facts.** On `main` the guard's only match is the field #2621 removes; no other event field is known to be RESTRICTED. A field found
   later is withdrawn under Decision 7.
+
+### Implementation considerations
+
+The Platform Owner's review raised these considerations. On acceptance each is folded into the decision it names, which is normative; they stay here as
+the reasoning behind those rules.
+
+- **IC-001: Safe incident assessment (Decision 9).** Counts grouped by scheme do not establish whether entries are synthetic, and legacy schemes accept
+  arbitrary text that may itself contain a RESTRICTED value. Count entries with verified fixture provenance separately from entries with unknown
+  provenance; treat unknown provenance as potentially real under Decision 9. Group only by validated, non-restricted attributes, using a fixed bucket
+  for unvalidated legacy attributes rather than printing their raw contents. Record the evidence used to establish fixture provenance with the counts.
+- **IC-002: Deployment and purge sequence (Decision 7).** Define a sequence that prevents an old publisher or writer from recreating clear outbox
+  payloads after the scrub. Ensure consumers support the new schema before publication resumes, stop all old writers and publishers, complete the
+  backfill and outbox scrub, and capture fixed per-partition cutoffs after the last possible old-format publication. Verify consumer progress through
+  those cutoffs before purging. Zero lag on the source topic does not establish that DLQ failures have been recovered: separately inventory affected
+  DLQ records and document their recovery through sanitised replay, or their approved disposition, before deleting them. Record cutoffs and recovery
+  evidence on the pull request; do not use a moving high-water mark as the deletion boundary.
+- **IC-003: Durable reveal outcomes (Decision 4).** Inserting an audit row before throwing an unchecked exception from the same transaction can roll
+  back the row for `REASON_REJECTED` or `UNREADABLE`. Prefer returning an explicit outcome from the transactional service, committing the audit row,
+  and only then mapping the outcome to HTTP 400 or 500 in the controller. Successful reveals likewise release the value only after commit succeeds;
+  an audit insert or commit failure releases nothing. Verify audit persistence after the complete request for both error outcomes, as well as the
+  successful reveal and audit-failure cases. See [Spring's transaction rollback rules](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html).
+- **IC-004: Replacement-value change detection (Decision 4).** A supplied replacement number is a mutation even when its element id, scheme and
+  region are unchanged. Recompute and store its derivative and publish the resulting masked fact; do not use ciphertext equality, or equality of
+  `last4`, to decide that the write is unchanged. Cover replacements with different `last4` values and replacements sharing the same `last4`, alongside
+  the existing id-without-value rule that preserves the stored ciphertext.
+- **IC-005: Safe inspection metadata and terminal handling (Decision 5).** Printing all headers is not necessarily safe metadata inspection:
+  `DeadLetterPublishingRecoverer` adds exception messages and stack traces to dead-letter headers. Prefer an allowlist of safe metadata fields and
+  suppress arbitrary headers, especially for legacy records whose exceptions may contain payload text. Running the command through `docker exec`
+  does not establish that its output stays on the broker host: remote terminals and session recording can carry or retain that output. Define the
+  permitted terminal and recording arrangements for single-record value inspection in the runbook. See [Spring's dead-letter header documentation](https://docs.spring.io/spring-kafka/reference/kafka/annotation-error-handling.html#dead-letters).
 
 ### Compliance checks
 
@@ -377,12 +432,14 @@ The four options weighed in louisburroughs/durion-positivity-backend#2617, and t
   purpose's key is never read by another cipher.
 - **CHK-003:** A log capture (ListAppender at DEBUG) across create, update, reveal, replay and outbox publish never contains the fake value or its `last4`.
 - **CHK-004:** The reveal permission is in all three catalogs at one bit and one `CATALOG_VERSION`; `RolePermissionBaselineTest` passes; a mutation that
-  moves the audit insert after the return, or into `REQUIRES_NEW`, fails a test.
+  moves the audit insert after the return, or into `REQUIRES_NEW`, fails a test. Tests over the complete request (through the controller and the commit)
+  prove the audit row persists for `REVEALED`, `REASON_REJECTED` and `UNREADABLE`, and that an audit-insert or commit failure releases no value.
 - **CHK-005:** Each replica of an affected fact has no column for the RESTRICTED value, and feeding it an older-version fact proves the skip and the value's
   absence from every table.
-- **CHK-006:** The runbook's DLQ section shows the metadata-only command and the single-record rule, and no command in it prints values with
-  `--from-beginning`.
-- **CHK-007:** A pull request that withdraws a field in place records the consumer search, the counts-only check and the purge offsets.
+- **CHK-006:** The runbook's DLQ section shows the metadata-only command with `print.headers=false`, the single-record rule and the permitted terminal
+  arrangements, and no command in it prints values or headers with `--from-beginning`.
+- **CHK-007:** A pull request that withdraws a field in place records the consumer search, the counts-only check with its provenance evidence, the fixed
+  per-partition cutoffs and the DLQ recovery evidence.
 - **CHK-008:** A pull request that adds a payload or replica field which can hold a CONFIDENTIAL or RESTRICTED value states its class in the description.
 - **CHK-009:** A reveal whose reason contains the stored value is refused with nothing revealed and no echo, and the refusal writes one
   `REASON_REJECTED` row with a null reason; a `scheme` or `region` containing a digit, or a `region` outside the ISO 3166-2 shape, is refused without
@@ -392,10 +449,12 @@ The four options weighed in louisburroughs/durion-positivity-backend#2617, and t
   Synthetic operations carrying only the permission marker, only the path marker, or an include rule that matches them are each excluded. A second test
   over the same specs fails when an operation has one marker without the other. Removing the exclusion, matching only one marker, or moving it into
   configuration fails CHK-010.
+- **CHK-011:** An update that sends a replacement value under an existing element id, with the same scheme and region, stores a new ciphertext and
+  `last4` and publishes the masked fact, both when the new `last4` differs and when it is the same; an id sent without a value keeps the stored ciphertext.
 
 ### Changes required in other ADRs
 
-Applied as dated amendments when this ADR is accepted; until then each carries a one-line note that the amendment is pending.
+Applied as dated amendments on acceptance (2026-10-08).
 
 - **ADR-0044 §3:** the in-place withdrawal of a RESTRICTED field (Decision 7).
 - **ADR-0070 Decision 7:** the vendor fact carries tax registrations as `{scheme, region, last4}` and no full number (Decision 8).
@@ -403,8 +462,8 @@ Applied as dated amendments when this ADR is accepted; until then each carries a
 No change: ADR-0046 (log levels), ADR-0050 §7 (its cipher is reused), ADR-0062 (tenant isolation). ADR-0071 is unchanged: its registrations meet
 Decision 1's published indirect-tax conditions (Security confirmation on PR #571).
 
-The accounting specification ([SPEC-accounting-workspace.md](../../domains/accounting/SPEC-accounting-workspace.md) §4.9 "Vendors (AW23)") carries a
-matching pending note on the vendor fact and accounting's copy.
+The accounting specification ([SPEC-accounting-workspace.md](../../domains/accounting/SPEC-accounting-workspace.md) §4.9 "Vendors (AW23)") states the
+masked vendor fact and accounting's `[{scheme, region, last4}]` copy.
 
 ---
 
@@ -432,19 +491,21 @@ matching pending note on the vendor fact and accounting's copy.
 | --- | --- | --- | --- |
 | Chief Architect | Chief Architect | 2026-10-08 | Analysis on #2617 (comment 6062021008): option 3 plus option 2's at-rest controls |
 | Security & Authorization Domain | Security & Authorization Domain Agent | 2026-10-08 | Ruling on #2617 (comment 6062214186), rulings 1-9; endorses this ADR; departures confirmed on PR #571 (Security confirmation, 2026-10-08) |
-| Platform Owner | Louis Burroughs | Pending | Approved drafting; reviews before acceptance |
+| Platform Owner | Louis Burroughs | 2026-10-08 | Accepted, with implementation considerations IC-001 to IC-005 folded into Decisions 4, 5, 7 and 9 |
 
 ---
 
 ## Timeline
 
 - **Proposed**: 2026-10-08
-- **Accepted**: pending Platform Owner review
+- **Accepted**: 2026-10-08
 
 ---
 
 ## Changelog
 
+- **2026-10-08**: Added implementation considerations for safe incident assessment, deployment and purge sequencing, durable reveal audit outcomes,
+  replacement-value change detection, and safe DLQ metadata and terminal handling.
 - **2026-10-08**: Initial draft from the Chief Architect analysis and the Security ruling on louisburroughs/durion-positivity-backend#2617; pending notes
   added to ADR-0044 §3 and ADR-0070 Decision 7.
 - **2026-10-08**: Review fixes (PR louisburroughs/durion#571): non-recoverable secrets are never encrypted for reading or revealable; the tenant's own
@@ -460,3 +521,8 @@ matching pending note on the vendor fact and accounting's copy.
 - **2026-10-08**: Security ruling on louisburroughs/durion-positivity-backend#2621 (comment 6064490514): Decision 4 gains "Never an agent tool" (a
   reveal or any operation returning a RESTRICTED value is never an MCP tool; two-marker exclusion in pos-mcp-server's discovery; the `reveal` action is
   reserved), CHK-010 and NEG-006; an `UNREADABLE` audit row has a null reason. Status stays PROPOSED.
+- **2026-10-08**: Accepted by the Platform Owner. Implementation considerations IC-001 to IC-005 folded into the decisions: Decision 4 releases a value
+  only after commit, returns every audited outcome instead of throwing, and treats a supplied replacement value as a change; Decision 5 prints no headers
+  by default and names permitted terminals; Decision 7 gains a rollout and purge sequence with fixed cutoffs and a separate DLQ inventory; Decision 9
+  groups only by validated attributes and separates verified fixture provenance. CHK-004, CHK-006 and CHK-007 extended; CHK-011 added. Amendments to
+  ADR-0044 §3 and ADR-0070 Decision 7 applied.

@@ -139,7 +139,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0069 | Scope Graph for Pre-LLM Narrowing in pos-mcp-server | ACCEPTED | '2026-09-30' |
 | 0070 | Bill Intake Ownership, Inbound Untrusted Files and the Vendor Master | ACCEPTED | '2026-10-05' |
 | 0071 | Per-Tenant Pluggable Tax Providers Behind pos-tax, Reached Through Front Doors | ACCEPTED | '2026-10-08' |
-| 0072 | Data Classification and Minimisation for Event Payloads, Replicas, Logs and DLQs | PROPOSED | '2026-10-08' |
+| 0072 | Data Classification and Minimisation for Event Payloads, Replicas, Logs and DLQs | ACCEPTED | '2026-10-08' |
 
 <!-- adr-table:end -->
 
