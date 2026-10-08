@@ -7,7 +7,7 @@ path: durion/docs/adr/0065-frontend-untrusted-content-and-browser-persistence-po
 tags: [adr, frontend]
 status: stable
 sources: [docs/adr/0065-frontend-untrusted-content-and-browser-persistence-policy.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T17:55:12Z'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T17:55:12+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0065-frontend-untrusted-content-and-browser-persistence-policy.adr.md) — `docs/adr/0065-frontend-untrusted-content-and-browser-persistence-policy.adr.md`

@@ -9,7 +9,7 @@ kind: Operations
 status: stable
 doc_status: current
 sources: [durion-positivity-backend/docs/DEVELOPMENT_GUIDE.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-29T01:30:09Z'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-29T01:30:09+00:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion-positivity-backend/blob/main/docs/DEVELOPMENT_GUIDE.md) — `durion-positivity-backend/docs/DEVELOPMENT_GUIDE.md`
