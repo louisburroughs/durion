@@ -29,13 +29,14 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > ruled AW45–AW47 on 2026-10-07, confirming AW47 on 2026-10-08: goods-receipt bills wait for their invoice and take its date; EDI totals that don't add
 > up go to a person. On 2026-10-08 the platform owner ruled that pos-tax is a collection of stubs and that every tax question waits for expert
 > advice (AW48); at the owner's request the Accounting Domain Agent then answered the Canada questions it could without tax law (AW49–AW57;
-> louisburroughs/durion#553), and the owner confirmed AW56's cash-rounding account the same day.
+> louisburroughs/durion#553), and the owner confirmed AW56's cash-rounding account the same day. The Chief Architect answered the issue's architecture
+> questions the same day; the owner accepted the resulting recommendations (AW58, AW59; ADR-0071).
 > Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
 > (event-only domain walls), ADR-0047 (ledger inalterability), ADR-0048 (inventory valuation), ADR-0049 (supplier integration boundary), ADR-0050 (vendor
 > profiles), ADR-0051 (supplier protocol adapters), ADR-0057 (reporting measures), ADR-0062 (multitenancy), ADR-0064 (business references, never UUIDs, as display
-> text), ADR-0067 (currency / Canada readiness).
+> text), ADR-0067 (currency / Canada readiness), ADR-0071 (pluggable tax providers, front doors to pos-tax).
 >
 > Related specifications: [SPEC-manual-bank-reconciliation.md](SPEC-manual-bank-reconciliation.md) (the monthly bank check-up this workspace links to; its
 > preparer ≠ approver rule and outstanding items are reused unchanged), [SPEC-inventory-adjustment-gl-posting.md](SPEC-inventory-adjustment-gl-posting.md) (form).
@@ -505,6 +506,9 @@ already has; three accounts are new:
 > controls (AW49–AW55) are accounting's and stand.
 
 Applies only to CAD tenants whose GST/HST registration is recorded; the backend exposes `inputTaxRecoveryEnabled` and the UI follows it, never the currency code.
+Registrations are recorded in the accounting workspace: pos-accounting is their front door and passes each write to pos-tax, which owns them and publishes
+`tax.registration.changed` by outbox; pos-accounting and pos-order read their own replicas (AW58, AW59; ADR-0071). A tenant's Canadian tax is priced by the
+`CA_SELF` stub plug-in unless the tenant is bound to another provider for Canada.
 The flags are read as of each posting's business date. An answer that can't be obtained retries or holds the posting, never reads as "off"; recording or
 back-dating a registration never changes a posted entry, and a missed recovery is the accountant's journal entry (AW49).
 
@@ -854,11 +858,12 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Seed (AW44) | Account 2240 Use Tax Payable (LIABILITY) and the `VENDOR_BILL` key `USE_TAX_PAYABLE` | Repeatable seed; S37 provisions every tenant |
 | Seed (AW38–AW41) | Accounts 2100, 5050, 5060, with statement lines `BS_DELIVERIES_NOT_BILLED` ("Deliveries not yet billed") and `IS_COST_OF_PARTS_SOLD`; categories `GOODS_RECEIPT`, `VENDOR_BILL`, `AP_PAYMENT` with their keys and mappings (AW40); no posting-rule versions | Repeatable seed; S37 provisions every tenant |
 | Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path; `APPROVED → VOIDED` (AW42) | DB check constraint |
-| Permissions | register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject`; new `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage` | registry + security catalog |
+| Permissions | register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject`; new `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage`, `accounting:tax_registration:view`, `accounting:tax_registration:manage` (AW59) | registry + security catalog |
 | Events | `ACCOUNTING_PAYMENT_CUSTOMER_ASSIGN`, `ACCOUNTING_VENDOR_BILL_SUBMIT`, `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed`, `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
 | Events (AW32–AW35) | `accounting.float.changed` gains kind `RELOCATION` and a nullable `previousLocationId`, additive with a `schemaVersion` bump (ADR-0044 §3; S38); `ACCOUNTING_REGISTER_FLOAT_RELOCATE`, `ACCOUNTING_BANK_OPENING_BALANCE_ESTABLISH`, `ACCOUNTING_CONFIGURATION_CASH_SAFETY_CUSHION_SET` | threshold `write` |
 | Events (AW42) | `ACCOUNTING_VENDOR_BILL_VOID` (void of an approved bill), `ACCOUNTING_AP_PAYMENT_GL_POSTING_RETRY` | thresholds `approval` / `write` |
 | CAD | `inputTaxRecoveryEnabled` as of the business date (AW49); 1250/1260 postings; vendor-bill tax split (AW51); output tax by type, held `SUSPENDED` / `TAX_TYPE_MISSING` (AW50); cash rounding under `CASH_ROUNDING`, held `SUSPENDED` / `CASH_ROUNDING_INVALID` (AW54) | §4.6, §4.7 |
+| Tax registrations (front door, AW59) | `GET /v1/accounting/tax-registrations` · `accounting:tax_registration:view`; `POST` and `PUT …/{registrationId}` · `accounting:tax_registration:manage` (S32) | Reads serve the `ext_tax_registration` replica of `tax.registration.changed` (AW58); writes are validated, then passed to pos-tax under ADR-0044 R2 with the actor forwarded in `X-User-Id` (ADR-0071 §5); 409 `TAX_REGISTRATION_OVERLAP` relayed; justification ≥ 10 characters and `requestId` as S31 |
 
 ### 7.2 `pos-order`
 
@@ -881,10 +886,14 @@ location, never the float row's.
 - `pos-accounting` permission registry: register `accounting:payment:assign-customer` (AD-004); move `accounting:period:override` into `AccountingPermissions` and
   its registration; register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject` (G13).
 - `pos-tax` (CAD, stubs — AW48, AW57): typed Canadian rates per province and tax type with `inputTaxRecoverable`, and a country facet so the US defaults
-  never price a Canadian address; a tenant's registration status as of a date (operator-set, effective-dated; transport and entry path: OI-22); a
-  registration-number shape check; the evidence rule (100.00 CAD, `appliesTo` drawer receipts and vendor bills); the plausibility check (AW55). Every value
+  never price a Canadian address; a tenant's registration status as of a date (effective-dated; owned by pos-tax, published as `tax.registration.changed`
+  on `tax.events.v1` by outbox with a manifest, AW58; written only through pos-accounting, AW59); a registration-number shape check; the evidence rule (100.00 CAD, `appliesTo` drawer receipts and vendor bills); the plausibility check (AW55). Every value
   is a placeholder listed in the stub register of `durion-positivity-backend/pos-tax/README.md`. The evidence-sourced rate seed, the AvaTax Canadian
   mapping, number formats and evidence tiers wait for expert advice.
+- `pos-tax` (ADR-0071, AW59): one tax port that picks a provider plug-in per tenant and country (`US_SELF` = today's test mode, `CA_SELF` = the stubs
+  above, `AVALARA`), defaulting per country; platform-held provider accounts; no gateway route or SDK. People reach it only through front doors —
+  registrations through pos-accounting, exemption certificates through pos-customer, provider bindings through pos-tenant — and each write endpoint accepts
+  only its front door. Computation calls from order, workorder, invoice, the MCP server and accounting stay direct.
 - `pos-tax` (AW44): `TaxCalculationType` gains `USE` (consumer use tax), priced by `/v1/tax/calculate` exactly like `SALE`; test mode's flat rates always
   answer (S43).
 - `pos-supplier`: additive fields on `SupplierInvoiceReceivedV1` — `channel` (ADR-0051 protocol-family values), `exchangeId` (provenance only: pos-accounting
@@ -1177,6 +1186,8 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW55 | Receipt-tax plausibility, per tax: maximum = `T × r / (1 + r)` rounded up to the minor unit plus a configurable tolerance, default 5 minor units; `r` from the pos-tax stub; no combined-rate bound | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553) | §4.7; S31, S32 |
 | AW56 | CAD cash-rounding account 6050 Cash Rounding (EXPENSE / OPERATING_EXPENSE, computed `IS_OTHER_EXPENSES`), category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE`, CAD tenants only (ADR-0067 PC-7 (b)) | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553), proposed; confirmed by the platform owner (2026-10-08, OI-21) | §4.6, §7.1; S32 |
 | AW57 | Phase 6 accounting codes against five pos-tax stubs: typed Canadian rates with recoverability, registration status as of a date, number shape, evidence rule, plausibility; the evidence-sourced rate seed, AvaTax Canadian mapping, number formats and evidence tiers wait for expert advice | Accounting Domain Agent (2026-10-08; louisburroughs/durion#553) | §4.7, §7.3; S31, S32, S33 |
+| AW58 | Tax registrations travel by outbox: pos-tax owns them and publishes `tax.registration.changed` v1 on `tax.events.v1` with a per-tenant manifest and re-send; pos-accounting and pos-order keep `ext_tax_registration` replicas and read them as of a business date (AW49) | Chief Architect (2026-10-08; louisburroughs/durion#553 question 1) | §4.7, §7.1, §7.3; S31, S32; ADR-0071 §7, ADR-0044 amended |
+| AW59 | People reach pos-tax only through front doors: registrations through pos-accounting (`accounting:tax_registration:view`, `…:manage`), exemption certificates through pos-customer, provider bindings through pos-tenant; each write endpoint accepts only its front door; service computation calls stay direct; pos-tax picks a provider plug-in per tenant and country (`US_SELF`, `CA_SELF`, `AVALARA` …) on platform-held accounts | Chief Architect (2026-10-08; louisburroughs/durion#553 question 2); recommendations accepted by the platform owner (2026-10-08) | §4.7, §7.1, §7.3; S31, S32, S33; ADR-0071, ADR-0021 amended |
 
 ---
 
@@ -1250,9 +1261,10 @@ its per-vendor setting `acceptTaxOnResaleGoods` waits for S24 (phase 5), the per
 to show the hold and the override. AW45–AW47 were ruled in the S12 review (louisburroughs/durion-positivity-backend#2609) and bind S12 (#2509).
 to show the hold and the override. AW48–AW57 (2026-10-08) re-scope S31 to the pos-tax stubs and answer S32's questions Q1–Q5 (comments on
 louisburroughs/durion-positivity-backend#2522 and #2523; S32's Q3 default is reversed: the share at entry applies). S33 shows the stubbed values as
-placeholders and the AW51 / AW53 bill checks.
+placeholders and the AW51 / AW53 bill checks. AW58–AW59 (2026-10-08, ADR-0071) add the registration transport and front door: S31 publishes the
+fact and accepts writes only from pos-accounting, S32 adds the front-door endpoints and the replica, and S33's registration panel posts to pos-accounting.
 
-Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553, answered 2026-10-08 under the stub rule (AW48–AW57; questions 1–2 are OI-22; the owner confirmed the rounding account, OI-21) · extraction
+Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553, answered 2026-10-08 under the stub rule (AW48–AW57; the owner confirmed the rounding account, OI-21; the Chief Architect answered questions 1–2, AW58–AW59, ADR-0071) · extraction
 provider louisburroughs/durion#549.
 
 ---
@@ -1282,7 +1294,8 @@ provider louisburroughs/durion#549.
 | OI-19 | **Resolved 2026-10-07 as a stub (AW44):** tax on resale goods holds the bill unless overridden per bill or per vendor; use tax from a pos-tax `USE` stub accrues to 2240. Still open for research with a US accountant: which purchases are taxable, per-state rules, and filing (louisburroughs/durion-positivity-backend#2599; S43 #2604) | Platform owner with a US accountant |
 | OI-20 | `currencyCode` and per-line cost basis on `goodsreceipt.recorded`, and a costed return-to-vendor fact (AW38; louisburroughs/durion-positivity-backend#2598). Landed cost (capitalising freight and non-recoverable tax): #2600 | Inventory |
 | OI-21 | **Resolved 2026-10-08:** the CAD cash-rounding account is 6050 Cash Rounding, category `CASH_ROUNDING`, key `CASH_ROUNDING_DIFFERENCE` (AW56; ADR-0067 PC-7 (b)); S32 seeds it for CAD tenants | Platform owner |
-| OI-22 | How tax registrations reach pos-accounting and pos-order (a `tax.registration.changed` fact or a cached synchronous read of pos-tax), and how a person records one when pos-tax has no gateway route (ADR-0021 §3; the exemption registry has the same gap). Accounting needs only the flags as of a business date (AW49) | Chief Architect (louisburroughs/durion#553 questions 1–2) |
+| OI-22 | **Resolved 2026-10-08 (AW58, AW59; ADR-0071):** registrations travel by pos-tax's outbox fact `tax.registration.changed`; people record them through pos-accounting, which passes the write to pos-tax; pos-tax picks a provider plug-in per tenant and country | Chief Architect (louisburroughs/durion#553 questions 1–2) |
+| OI-23 | The other two front doors of ADR-0071 have no story yet: exemption certificates through pos-customer (`crm:tax_exemption:view`, `…:manage`) and provider bindings through pos-tenant (`platform:tenant_tax_provider:manage`). Neither blocks CAP:550 | Platform owner |
 
 ---
 

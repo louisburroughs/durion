@@ -1,11 +1,11 @@
 ---
 type: ADR
 title: 'ADR-0021: Tax API Consumption and Internal Access Policy'
-description: Callers may treat address validation as best-effort and not handle hard validation failures.
+description: pos-tax is internal-only with strict address validation; it has no gateway route or SDK, people reach it only through front-door domain modules, and services call it directly from an allowlist (amended 2026-10-08 by ADR-0071).
 status: stable
 adr_status: accepted
 created: '2026-02-21'
-related: [ADR-0014]
+related: [ADR-0014, ADR-0018, ADR-0044, ADR-0071]
 tags: [adr, accounting, api-contract]
 ---
 # ADR-0021: Tax API Consumption and Internal Access Policy
@@ -131,6 +131,25 @@ Recommended implementation pattern:
 
 ---
 
+## Amendments
+
+### 2026-10-08 — Front doors for people, the caller allowlist and per-tenant providers ([ADR-0071](0071-tax-per-tenant-pluggable-providers.adr.md))
+
+The Chief Architect restated this ADR's purpose on louisburroughs/durion#553: pos-tax is never reached by the frontend, nor exposed through the SDK or
+public APIs. The Platform Owner accepted the resulting rules on 2026-10-08. They refine §3; §1 and §2 are unchanged.
+
+- **Front doors.** Every operation a person starts reaches pos-tax through the external-facing domain module that owns the person's permission:
+  registrations through pos-accounting, exemption certificates through pos-customer, provider bindings through pos-tenant (ADR-0071 §5). The front door
+  checks the permission and calls pos-tax under ADR-0044 R2, forwarding the actor in the gateway's `X-User-Id` header, never in a body
+  (ADR-0018; ADR-0071 §5). There is no `@durion-sdk/tax` package and no frontend
+  caller.
+- **Caller allowlist (§3 item 2).** Computation — calculate, refund, commit, void, rate lookup, plausibility — is called directly by pos-order,
+  pos-workorder, pos-invoice, pos-mcp-server and pos-accounting. Each write endpoint (registrations, exemption certificates, bindings) accepts only its front
+  door, authenticated by a per-caller shared secret until a platform service identity replaces it (ADR-0071 §6).
+- **Provider.** pos-tax chooses a provider plug-in per tenant and country; callers never choose or name it (ADR-0071 §1–§4).
+
+---
+
 ## References
 
 - `durion-positivity-backend/pos-tax/src/main/java/com/positivity/tax/internal/controller/TaxController.java`
@@ -138,3 +157,4 @@ Recommended implementation pattern:
 - `durion-positivity-backend/pos-tax/src/main/java/com/positivity/tax/internal/validation/ValidSubdivisionForCountry.java`
 - `durion-positivity-backend/pos-tax/src/main/java/com/positivity/tax/internal/validation/SubdivisionForCountryValidator.java`
 - `durion/docs/adr/0014-gateway-internal-service-security.adr.md`
+- `durion/docs/adr/0071-tax-per-tenant-pluggable-providers.adr.md`
