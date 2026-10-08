@@ -5,7 +5,7 @@ description: Domain modules may not call each other synchronously — cross-doma
 status: stable
 adr_status: accepted
 created: '2026-07-08'
-related: [ADR-0006, ADR-0009, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0020, ADR-0021, ADR-0022, ADR-0025, ADR-0026, ADR-0027, ADR-0040, ADR-0042, ADR-0043, ADR-0054, ADR-0058, ADR-0062, ADR-0070]
+related: [ADR-0006, ADR-0009, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0020, ADR-0021, ADR-0022, ADR-0025, ADR-0026, ADR-0027, ADR-0040, ADR-0042, ADR-0043, ADR-0054, ADR-0058, ADR-0062, ADR-0070, ADR-0071]
 tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
@@ -50,14 +50,15 @@ events** with result events and pending states.
 
 | Class                        | Modules                                                                                                                                                                                                                                                                                                                                                                                                       | May be called synchronously? |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **Utility**                  | `pos-api-gateway`, `pos-security-service`, `pos-documents` (per [ADR-0020](0020-documents-centralized-creation.adr.md)), `pos-image`, `pos-tax` (per [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md)), `pos-event-receiver`, `pos-price`, extraction worker and inbound-mail edge (working names, new 2026-10-05, per [ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md)) | Yes — by any module          |
+| **Utility**                  | `pos-api-gateway`, `pos-security-service`, `pos-documents` (per [ADR-0020](0020-documents-centralized-creation.adr.md)), `pos-image`, `pos-tax` (per [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md); also owns tenant tax-profile data per [ADR-0071](0071-tax-per-tenant-pluggable-providers.adr.md)), `pos-event-receiver`, `pos-price`, extraction worker and inbound-mail edge (working names, new 2026-10-05, per [ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md)) | Yes — by any module          |
 | **Domain**                   | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inquiry`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-order`, `pos-people` (HR), `pos-people-contact` (new), `pos-shop-manager`, `pos-vehicle-inventory`, `pos-vehicle-fitment`, `pos-vehicle-reference-*`, `pos-workorder`, `pos-bulk-loader`, `pos-supplier` (new, 2026-08-10), `pos-platform-sender` (new, 2026-10-03)                      | No — events only             |
 | **Libraries / non-deployed** | `pos-events`, `pos-shared-dtos`, `pos-domain-events` (new), `pos-security-common`, `pos-tax-common`, `pos-bulk-ingest-lib`, `pos-document-helper`, `pos-dependencies`, `pos-archunit`                                                                                                                                                                                                                         | n/a                          |
 
 `pos-tax` and `pos-price` are utilities because they are stateless _computation_ (tax and price determination), not data lookups — replicating their rule engines into callers
 would be worse than the call. `pos-documents` is a utility because ADR-0020 mandates centralized document creation via its render API. `pos-mcp-server` is a gateway client
 (bearer-token relay) and follows client rules, not module rules. The extraction worker and the inbound-mail edge are utilities because they are stateless
-isolation boundaries for untrusted input, not owners of business data (2026-10-05 amendment).
+isolation boundaries for untrusted input, not owners of business data (2026-10-05 amendment). pos-tax also owns tenant tax-profile data and publishes
+`tax.registration.changed`; it stays a utility for its computation calls (2026-10-08 amendment).
 
 ### 2. Rules of separation
 
@@ -195,6 +196,19 @@ approved by ADR amendment.
 ---
 
 ## Amendments
+
+### 2026-10-08 — pos-tax owns tenant tax-profile data and publishes registrations ([ADR-0071](0071-tax-per-tenant-pluggable-providers.adr.md))
+
+pos-tax was classed a utility because it is stateless computation. ADR-0071 keeps it a utility for that computation and adds data it owns.
+
+- **Data.** pos-tax is the source of truth for each tenant's tax registrations, exemption certificates and provider bindings (ADR-0071 §3, §7). People
+  change them only through front doors — pos-accounting, pos-customer and pos-tenant — which call pos-tax under R2.
+- **Facts.** pos-tax publishes `tax.registration.changed` v1 on `tax.events.v1` with the §4 mechanisms: a transactional outbox, the per-tenant manifest
+  `tax.manifest.v1` and re-send. pos-accounting and pos-order keep `ext_tax_registration` replicas (R3). It is the only utility that publishes a domain
+  fact; exemption certificates and bindings publish nothing until a consumer needs them.
+- **Computation unchanged.** Calculate, refund, commit, void, rate lookup and plausibility stay synchronous utility calls (R2); pos-tax picks the provider
+  plug-in per tenant and country, invisibly to callers.
+- **Enforcement.** pos-tax stays in `DomainWallsTest`'s `UTILITY_MODULES`; the topic joins the event contract registry when S31 builds it.
 
 ### 2026-10-05 — Extraction worker and inbound-mail edge join the Utility class ([ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md))
 

@@ -163,6 +163,10 @@ Ruled by the platform owner on 2026-10-08 (`../SPEC-accounting-workspace.md` §1
   placeholder behaviour taken from configuration, and the story that calls it. The `pos-tax` change adds the stub to the register in
   `durion-positivity-backend/pos-tax/README.md`.
 - Accounting still rules on what surrounds tax: posting legs, holds versus defaults, which setting applies when, and bookkeeping controls.
+- People never reach `pos-tax` directly (ADR-0071, AW59): tax registrations are maintained through pos-accounting
+  (`accounting:tax_registration:view`, `…:manage`), which passes each write to `pos-tax`; accounting reads registrations from its
+  `ext_tax_registration` replica of `tax.registration.changed` (AW58). `pos-tax` picks a provider plug-in per tenant and country
+  (`US_SELF`, `CA_SELF`, …); a story never names or chooses one.
 - A stub becomes a real rule only once the expert advice is recorded in the specification's decision log. Callers code against the contract,
   so that change never touches them.
 
