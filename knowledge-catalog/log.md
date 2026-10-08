@@ -6,7 +6,8 @@
 * **Added**: `adr/0071-tax-per-tenant-pluggable-providers.md` for the accepted ADR-0071; `adr/index.md` and the root index count it.
   `adr/0021` takes ADR-0021's corrected description (its 2026-10-08 amendment), and `adr/0044` and `backend/pos-tax.md` are restamped.
 * **Added**: `adr/0072-data-classification-event-payload-minimisation.md` for the proposed ADR-0072; `adr/index.md` and the root index count it.
-  `adr/0044` and `adr/0070` are restamped for their pending-amendment notes; backend module entries and two domain owner lines follow the backend `main`.
+  `adr/0044` and `adr/0070` are restamped for their pending-amendment notes, and backend module entries follow the backend `main`. `domains/location`
+  and `domains/security` keep master's Implemented-by lines: a regen in another checkout reordered tied mention counts (unsorted `rglob`).
 
 ## 2026-10-07
 
