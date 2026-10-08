@@ -5,7 +5,7 @@ description: Places every human channel for supplier invoices (upload, photo, sp
 status: stable
 adr_status: accepted
 created: '2026-10-05'
-related: [ADR-0020, ADR-0044, ADR-0049, ADR-0050, ADR-0051, ADR-0062, ADR-0064, ADR-0065]
+related: [ADR-0020, ADR-0044, ADR-0049, ADR-0050, ADR-0051, ADR-0062, ADR-0064, ADR-0065, ADR-0072]
 tags: [adr, accounting, billing, positivity, supplier, events, security, rbac]
 ---
 # ADR-0070: Bill Intake Ownership, Inbound Untrusted Files and the Vendor Master
@@ -123,6 +123,9 @@ connection: `vendorId` (UUIDv7), `vendorNumber` (ADR-0064 business reference), `
   until an approver other than the payer confirms the change.
 - Bank details for electronic payment are not part of this decision: they never travel on Kafka, and where they (or provider tokens) live is decided when
   electronic vendor payments are introduced (specification OI-14).
+
+*Amended by [ADR-0072](0072-data-classification-event-payload-minimisation.adr.md) Decision 8, pending acceptance of ADR-0072: the fact carries tax
+registrations as `{scheme, region, last4}` only, never a full number.*
 
 ### 8. Source files stay in pos-accounting behind a `FileStore` port
 
