@@ -102,15 +102,21 @@ appear.
   back: identifiers, registration numbers and bank-account data. A value the platform must never recover is never encrypted for later reading and never
   revealable: a CVV is not stored after authorisation (nor any other sensitive authentication data), a password is stored only as a one-way verifier
   (an adaptive hash), and other credentials stay secret-store references (ADR-0050 §4). Decision 2 applies to both kinds.
-- **Published indirect-tax registrations.** A tax-registration number is INTERNAL only when all three hold:
+- **Published indirect-tax registrations.** A tax-registration number is INTERNAL only when all three hold, whoever holds it (the tenant or a
+  counterparty such as a supplier):
   (a) its field accepts nothing but the configured shape of one indirect-tax regime (for example GST/HST `#########RT####`, QST `##########TQ####`),
   and entry refuses any other value without echo;
   (b) no configured shape can match a value of exactly nine digits once separators are removed;
   (c) the holder must show the number on the documents it issues.
 
+  The configured shapes are platform configuration, shipped with the service and changed only by a reviewed commit. They are never set per tenant, by a
+  tenant or by a tax provider. A shape that could be changed at runtime fails (a).
+
   A number that fails any condition is RESTRICTED, whoever holds it. The tenant's own registrations under ADR-0071 §7 meet all three (S31 limits them to
   `GST_HST` and `QST` and checks their shape), so `tax.registration.changed` and the `ext_tax_registration` replicas may carry them. They are INTERNAL,
-  not PUBLIC. A regime that fails (b) needs an ADR-0071 amendment reviewed by Security. (Security confirmation on PR #571, 2026-10-08.)
+  not PUBLIC. A supplier's GST/HST number recorded through the drawer's shape-checked field (S32) meets all three in the same way. The same supplier's
+  numbers in pos-supplier's vendor registrations stay RESTRICTED, because that store accepts personal-ID schemes. A regime that fails (b) needs an
+  ADR-0071 amendment reviewed by Security. (Security confirmation on PR #571, 2026-10-08.)
 - **CONFIDENTIAL in detail:** names, postal addresses and e-mail addresses of natural persons, sole-proprietor vendors included, and the masked derivatives
   of RESTRICTED values (`last4`).
 
@@ -437,3 +443,5 @@ matching pending note on the vendor fact and accounting's copy.
   no PAN stored and sensitive authentication data never kept; `scheme` allows `_` and `region` allows letters only; a reason containing the value writes
   a `REASON_REJECTED` audit row with a null reason, and the reason stays free text; the guard also fails on names ending with `registrationNumber`
   (CHK-001, CHK-009). Status stays PROPOSED.
+- **2026-10-08**: Security decision on PR #571: a shape-checked indirect-tax number is INTERNAL whoever holds it, counterparties included; shapes are
+  platform configuration only.
