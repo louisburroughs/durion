@@ -5,7 +5,7 @@ description: Domain modules may not call each other synchronously — cross-doma
 status: stable
 adr_status: accepted
 created: '2026-07-08'
-related: [ADR-0006, ADR-0009, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0020, ADR-0021, ADR-0022, ADR-0025, ADR-0026, ADR-0027, ADR-0040, ADR-0042, ADR-0043, ADR-0054, ADR-0058, ADR-0062, ADR-0070, ADR-0071]
+related: [ADR-0006, ADR-0009, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0020, ADR-0021, ADR-0022, ADR-0025, ADR-0026, ADR-0027, ADR-0040, ADR-0042, ADR-0043, ADR-0054, ADR-0058, ADR-0062, ADR-0070, ADR-0071, ADR-0072]
 tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
@@ -109,6 +109,8 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
 - Identifiers in payloads are UUID-typed per [ADR-0027](0027-uuid-typed-id-contract-policy.adr.md); `eventId` is UUIDv7 per
   [ADR-0013](0013-platform-uuid-identifier-strategy.adr.md).
 - Payload changes within a version MUST be additive-only. Breaking changes require a new topic version (`.v2`), with the owner dual-publishing during the migration window.
+  *Amended by [ADR-0072](0072-data-classification-event-payload-minimisation.adr.md) Decision 7, pending acceptance of ADR-0072: a RESTRICTED field may be
+  withdrawn in place when no consumer reads it (see §Amendments).*
 - `aggregateVersion` is a monotonic per-aggregate sequence; consumers use it to detect gaps and to ignore out-of-date updates.
 
 ### 4. Reliability mechanisms (mandatory before a module migrates)
@@ -196,6 +198,12 @@ approved by ADR amendment.
 ---
 
 ## Amendments
+
+### Pending acceptance of ADR-0072 — withdrawing a RESTRICTED field in place ([ADR-0072](0072-data-classification-event-payload-minimisation.adr.md))
+
+Not in force until ADR-0072 is ACCEPTED. §3's additive-only rule gains one exception: a RESTRICTED field may be withdrawn from a live payload on the same
+`eventType` and topic, with no `.v2` topic and no dual-publish, only when no consumer reads it, `schemaVersion` is bumped, the owner's outbox is scrubbed in
+the same release and consumers apply only the new version (ADR-0072 Decision 7).
 
 ### 2026-10-08 — pos-tax owns tenant tax-profile data and publishes registrations ([ADR-0071](0071-tax-per-tenant-pluggable-providers.adr.md))
 
