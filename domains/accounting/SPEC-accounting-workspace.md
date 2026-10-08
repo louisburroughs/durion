@@ -25,7 +25,9 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 > Domain Agent ruled AW32–AW35 at the platform owner's request: moving a register's float, AP default terms, the safety cushion and opening bank balances;
 > AW36 records the platform owner's and Order's no-move-during-an-open-session rule. Also on 2026-10-07, at the platform owner's request, the Accounting
 > Domain Agent ruled AW37–AW43 on when and how vendor bills and AP payments post (OI-2, OI-3; louisburroughs/durion#551); AW44 records the platform
-> owner's stub decision on US purchase tax (OI-19).
+> owner's stub decision on US purchase tax (OI-19). In the S12 review (louisburroughs/durion-positivity-backend#2609) the Accounting Domain Agent
+> ruled AW45–AW47 on 2026-10-07, confirming AW47 on 2026-10-08: goods-receipt bills wait for their invoice and take its date; EDI totals that don't add
+> up go to a person.
 > Every decision is recorded in §10 and cited in the body as "(AWn)". **EXISTING** means verified in code on 2026-10-05; **PROPOSED** means this specification.
 > Applicable ADRs: [ADR-0010](../../docs/adr/) frontend architecture, ADR-0017 (status codes, `ApiError`), ADR-0018 (actor from the security context), ADR-0020
 > (document rendering, outbound only), ADR-0029–0035, 0037, 0038 (frontend patterns), ADR-0039 (WCAG 2.2 AA), ADR-0041 (SDK-backed feature services), ADR-0044
@@ -215,7 +217,7 @@ A projection, labelled as such, never posted.
 | Status | Plain label | Meaning |
 | --- | --- | --- |
 | `PENDING_RECEIPT_MATCH` | Waiting on delivery / waiting on the invoice | Waiting for its counterpart: the vendor's invoice for a delivery, or a delivery for an invoice |
-| `MATCH_EXCEPTION` | Doesn't match delivery / Pick a match | Needs a person: score 50–69, several candidates ≥ 50, a line check failed (quantity 0.1 %, price 5 %, total 5 %), the EDI amount was unreadable, or a re-issued invoice changed amount or currency |
+| `MATCH_EXCEPTION` | Doesn't match delivery / Pick a match | Needs a person: score 50–69, several candidates ≥ 50, a line check failed (quantity 0.1 %, price 5 %, total 5 %), the EDI amount was unreadable, the vendor's totals don't add up (AW47), or a re-issued invoice changed amount or currency |
 | `CURRENCY_HOLD` | On hold: foreign currency | Can never be approved (ADR-0067) |
 | **`AWAITING_APPROVAL`** | Sent for approval | Checked; waiting for an approver of the required tier. Carries `requiredTier` (`CLERK` \| `OVER_LIMIT`), `submittedAt`, `submittedBy` |
 | `APPROVED` | Approved · to pay | Owed; locked (no edits). A paid bill stays `APPROVED` with open amount = total − allocations (EXISTING) |
@@ -223,8 +225,10 @@ A projection, labelled as such, never posted.
 | `VOIDED` | Voided | EXISTING |
 
 Transitions: `PENDING_RECEIPT_MATCH | MATCH_EXCEPTION → AWAITING_APPROVAL → APPROVED | REJECTED`. "Send for approval without a delivery match" is allowed with
-a justification (service bills, shop supplies, EDI bills that will never have a receipt). Selecting a match candidate is matching only; the bill then moves to
-`AWAITING_APPROVAL`. An `APPROVED` bill is never rejected; while nothing has been allocated to it, it may be voided (`APPROVED → VOIDED`, AW42).
+a justification (service bills, shop supplies, EDI bills that will never have a receipt); a goods-receipt bill instead waits for its vendor invoice
+(AW45). Selecting a match candidate is matching only; the bill then moves to `AWAITING_APPROVAL`. An `APPROVED` bill is never rejected; while nothing has
+been allocated to it, it may be voided (`APPROVED → VOIDED`, AW42). A goods-receipt bill no invoice will match is voided from `PENDING_RECEIPT_MATCH`
+(AW45).
 
 **Limits:**
 
@@ -285,15 +289,36 @@ louisburroughs/durion-positivity-backend#2603).
   line's expense key / Cr **2240 Use Tax Payable** (`VENDOR_BILL` key `USE_TAX_PAYABLE`), mirrored by a void. Goods for resale accrue none. US tenants
   only.
 - **Matching keeps what was billed.** `/match` and candidate selection set the bill's total to the vendor's billed total and keep the billed quantity and price
-  of each line; EDI bills keep the stated net and tax (none stated: net = gross, tax 0).
+  of each line; EDI bills keep the stated net and tax, a missing one filled in as AW47 says.
+- **Goods-receipt bills wait for their invoice (AW45).** A goods-receipt bill can't be submitted, approved or `ACCEPT`ed until a vendor invoice has been
+  matched to it: an invoice reference with billed lines in its match evidence, from `/match` or candidate selection. Otherwise 409
+  `AP_BILL_AWAITING_INVOICE`; no entry is posted and 2100 is unchanged. "Send without match" stays for invoice-channel (EDI) bills only. *Closing the
+  placeholder:* a goods-receipt bill can be voided from `PENDING_RECEIPT_MATCH` with `accounting:ap:reject` and a reason of at least 10 characters; it
+  posts nothing, and the receipt's accrual stays in 2100 until the vendor's EDI bill classified `GOODS` clears it at approval. *Duplicate signal:* the
+  read of an EDI bill classified `GOODS` reports the check `OPEN_DELIVERIES_FROM_VENDOR` = FAIL, its args the count and the bill numbers, while the
+  same vendor has goods-receipt bills still open (`PENDING_RECEIPT_MATCH`, `MATCH_EXCEPTION` or `AWAITING_APPROVAL`); it is informational and never
+  blocks approval.
+- **A matched goods-receipt bill takes the invoice's date (AW46).** At `/match` and candidate selection the bill takes the invoice number and its
+  `invoiceDate` as `billDate`; the receipt date stays in the evidence as `receivedDate`. The duplicate guard at match uses the invoice date (409
+  `AP_BILL_DUPLICATE`, the receipt bill untouched). `invoiceDate` is required on `/match` (else 400).
+- **The vendor's own totals (AW47).** Cr 2000 is always the stated gross. A tax the vendor did not state is 0, never worked out as gross − net; with
+  tax stated and net missing, net = gross − tax; with neither stated, net = gross. The check applies when net and gross are both stated (a missing tax
+  counts as a stated 0); only a derived net skips it. A gap gross − (net + tax) of at most 0.01 per stated line and 0.05 per bill (a header-only bill
+  counts as one line) goes to the largest debit, kept as `roundingAdjustment`. A larger gap creates the bill in `MATCH_EXCEPTION` with
+  `statusExplanation` "The vendor's totals don't add up: net N + tax T ≠ total G" and the check `TOTALS_ADD_UP` = FAIL `{difference}`. Submit, approve
+  and `ACCEPT` then need `difference {class: FREIGHT | GOODS | EXPENSE (+ expenseMappingKey) | PRICE_DIFFERENCE, justification ≥ 10 characters}`,
+  which posts the gap to 5060, 2100, the expense key or 5050 (a negative gap as a credit); without it, 422 `AP_BILL_TOTALS_UNRECONCILED` and nothing is
+  written. `CORRECT` and `VOID` remain.
 - **Dates and refusals (AW42).** A bill posts on its bill date when that date is on or before the approval date and its period is OPEN, otherwise on the
   approval date (tenant calendar); the read serves `postingDate` and `postingDateRule`. The approval date's period CLOSED → 422 `PERIOD_CLOSED`, unless the
   approver holds `accounting:period:override` and gives an `overrideJustification`; HARD_LOCKED → 422 `PERIOD_HARD_LOCKED`; a missing or inactive mapping is
   refused as well (its status: louisburroughs/durion-positivity-backend#2601). A refusal rolls the approval back: the bill keeps its status, with no approval
-  field and no entry. A refused automatic approval leaves the bill `AWAITING_APPROVAL`, audited with the reason.
+  field and no entry. A refused automatic approval leaves the bill `AWAITING_APPROVAL`, audited with the reason. A bill totalling 0.00 has nothing to
+  post: send, approval and `ACCEPT` refuse it (422 `AP_BILL_ZERO_TOTAL`, S12); correct it or void it.
 - **Void after approval (AW42).** Only while nothing is allocated (else 409 `AP_BILL_NOT_VOIDABLE`; a vendor credit note corrects it, AW27), with
   `accounting:ap:reject`, the approval tier and a reason of at least 10 characters. It posts the mirror through the journal-entry reversal, dated on the void
-  date in that date's period, never back in the original period; 2100 is accrued again.
+  date in that date's period, never back in the original period; 2100 is accrued again. Only the void reverses a bill's entry: the journal-entry
+  reversal of a bill's entry, or of its void's reversal, is refused (409 `AP_BILL_ENTRY_NOT_REVERSIBLE`, S12).
 - **AP payments (AW41).** Dr 2000 gross / Dr 6030 fee / Cr the chosen `BANK_CASH` account (gross + fee), dated the day the payment executed;
   `bankAccountId` is on the pay command, defaulted only when exactly one active functional-currency `BANK_CASH` account exists (inactive and foreign-currency
   accounts are ignored; with none or several eligible, it is required). Method, currency and period are checked before the gateway is called;
@@ -786,6 +811,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Bill GL posting at approval | In the approve, `ACCEPT` and system-approval transaction; category `VENDOR_BILL` (AW37–AW40; S12, backend #2509) | §4.3 "Posting"; a refusal rolls back (422 `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`; mapping: #2601); the read serves `postingDate`, `postingDateRule`, the entry's reference; old `VENDOR_BILL_GL_POSTING` events closed, never retried |
 | US purchase tax stubs | approve and `ACCEPT` bodies gain `taxOnResaleOverrideJustification`; AP vendor setting `acceptTaxOnResaleGoods` · `accounting:ap_approval_policy:manage` (AW44; S43, louisburroughs/durion-positivity-backend#2604) | §4.3; 422 `AP_BILL_TAX_ON_RESALE_GOODS`; the bill read reports the check `TAX_ON_RESALE_GOODS`; use tax accrued to 2240 at approval from pos-tax `USE`, bills only (no credit notes) |
 | Void an approved bill | `POST /v1/accounting/vendor-bills/{id}/void` · `accounting:ap:reject` and the approval tier | AW42; nothing allocated, else 409 `AP_BILL_NOT_VOIDABLE`; reason ≥ 10 characters; mirror entry dated on the void date |
+| Goods-receipt bills and vendor totals | `/match` requires `invoiceDate`; submit, approve and `ACCEPT` bodies gain `difference`; void from `PENDING_RECEIPT_MATCH` · `accounting:ap:reject` (AW45–AW47; S12) | §4.3; 409 `AP_BILL_AWAITING_INVOICE`; 422 `AP_BILL_TOTALS_UNRECONCILED`; checks `OPEN_DELIVERIES_FROM_VENDOR`, `TOTALS_ADD_UP`; the read serves `roundingAdjustment` |
 | Goods-receipt accrual | Listener on `goodsreceipt.recorded` (S41, louisburroughs/durion-positivity-backend#2602) | AW38; Dr 1300 / Cr 2100 / Dr or Cr 5050, dated `occurredAt`; key `GOODS_RECEIPT_ACCRUAL:<receiptId>`; a missing or foreign currency is parked |
 | AP payment posting | EXISTING `POST /v1/accounting/ap/payments` gains `bankAccountId`, loses `netAmount`; `POST …/{paymentId}/gl-posting-retry` · `accounting:je:post` (S42, louisburroughs/durion-positivity-backend#2603) | AW41; category `AP_PAYMENT`; refused before the gateway: 422 `AP_PAYMENT_METHOD_NOT_SUPPORTED`, `CURRENCY_NOT_SUPPORTED`, `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED` |
 | AP approval policy | `GET/PUT /v1/accounting/ap-approval-policy` · `accounting:ap_approval_policy:manage` | clerk limit, automatic limit, history; `defaultTerms` (`AP_DEFAULT_TERMS`, AW33; S13, louisburroughs/durion-positivity-backend#2510): values and audit in §4.2 |
@@ -983,6 +1009,17 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 - Paying a bill one approved returns `AP_PAYMENT_SELF_APPROVED_BILL`.
 - A US bill with stated tax on a goods line is refused with `AP_BILL_TAX_ON_RESALE_GOODS` until the approver gives a justification or the vendor's
   `acceptTaxOnResaleGoods` is on; an untaxed `EXPENSE` line credits 2240 with pos-tax's use tax (AW44).
+- An unmatched goods-receipt bill is refused at submit and approve (409 `AP_BILL_AWAITING_INVOICE`); an `ap:reject` holder voids it from
+  `PENDING_RECEIPT_MATCH` with a 12-character reason (`VOIDED`, no entry), anyone else gets 403; an EDI bill is still sent with a justification. An EDI
+  `GOODS` bill whose vendor has one open goods-receipt bill reports `OPEN_DELIVERIES_FROM_VENDOR` = FAIL with count 1 and still approves (AW45).
+- A receipt bill dated 09-28 matched to INV-1 dated 10-02 gets `billDate` 10-02, evidence `receivedDate` 09-28, and posts on 10-02 if that period is
+  OPEN; with an EDI bill (V, INV-1, 10-02) already on file `/match` returns 409 `AP_BILL_DUPLICATE`, the receipt bill untouched; `/match` without
+  `invoiceDate` is 400 (AW46).
+- US `GOODS` EDI bills (AW47): gross 1,085.00 / net 1,000.00 / tax 70.00 is a `MATCH_EXCEPTION` with difference 15.00, refused at approval without
+  `difference` (422 `AP_BILL_TOTALS_UNRECONCILED`); with `FREIGHT` it posts Dr 2100 1,000.00 / Dr 5050 70.00 / Dr 5060 15.00 / Cr 2000 1,085.00.
+  Gross 1,070.01 posts normally: Dr 2100 1,000.01 / Dr 5050 70.00 / Cr 2000 1,070.01, `roundingAdjustment` 0.01. Gross 1,060.00 with
+  `PRICE_DIFFERENCE`: Dr 2100 1,000.00 / Dr 5050 60.00 / Cr 2000 1,060.00. Gross 1,085.00, net 1,000.00 and no tax: `MATCH_EXCEPTION`, difference
+  85.00, no Dr 5050.
 - Read-back fields marked "Check this" block confirmation until accepted or corrected (422 `BILL_INTAKE_FIELDS_UNCHECKED`).
 - A second bill with the same vendor, normalised number and date is refused with `AP_BILL_DUPLICATE` and a link to the original, whichever channel brought
   either copy (upload + EDI, import + upload); after the original is voided the re-issue is accepted.
@@ -1096,6 +1133,9 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW42 | A bill posts on its bill date when that period is open, else on the approval date; a period or mapping refusal rolls the approval back; an approved bill with nothing allocated may be voided, its mirror dated on the void date, never in the original period | Accounting Domain Agent (2026-10-07; OI-2). Refusal status: Chief Architect (#2601) | §4.3, §7.1; S12, S13, S14 |
 | AW43 | Foreign-currency bills (`CURRENCY_HOLD`) never post; a foreign-currency AP payment is refused and a receipt fact without a functional currency is parked; never at par | Accounting Domain Agent (2026-10-07), applying ADR-0067 PC-9 (a), PC-13 (a) | §4.3; S41, S42 |
 | AW44 | US purchase tax, stubbed: stated tax on resale goods holds a bill from approval unless overridden for that bill (justification) or permanently for the vendor (`acceptTaxOnResaleGoods`); untaxed `EXPENSE` lines of a bill (not a credit note) accrue use tax from pos-tax (`USE`) to new 2240 Use Tax Payable at approval; per-state rules wait for research | Platform owner (2026-10-07; OI-19, louisburroughs/durion-positivity-backend#2599) | §4.3, §7.1, §7.3; S43 |
+| AW45 | A goods-receipt bill is not sent, approved or accepted until an invoice is matched to it; send without match stays for EDI; an unmatched one is voided, posting nothing; EDI `GOODS` bills flag the vendor's open receipt bills (informational) | Accounting Domain Agent (2026-10-07; S12 review, louisburroughs/durion-positivity-backend#2609) | §4.3, §7.1, §9.2; S12 |
+| AW46 | A matched goods-receipt bill takes the invoice number and `invoiceDate` as `billDate`, the receipt date kept as `receivedDate`; the duplicate guard at match uses the invoice date; `invoiceDate` is required on `/match` | Accounting Domain Agent (2026-10-07; S12 review, #2609) | §4.3, §7.1, §9.2; S12 |
+| AW47 | Cr 2000 is always the gross; a tax not stated is 0; the totals check applies when net and gross are stated, only a derived net skips it; rounding up to 0.01 a line, 0.05 a bill; a larger gap is a `MATCH_EXCEPTION` needing a classified `difference` | Accounting Domain Agent (2026-10-07, confirmed 2026-10-08; S12 review, #2609) | §4.3, §7.1, §9.2; S12 |
 
 ---
 
@@ -1166,7 +1206,7 @@ S38 and S39 were added on 2026-10-07 from the AW32 and AW35 rulings. The AW33 te
 louisburroughs/durion-positivity-backend#2510 and #2515). S41 and S42 were added on 2026-10-07 from the AW38 and AW41 rulings; AW37–AW43 amend S12, S13,
 S17, S19, S24, S25, S32, S37 (backend) and S14, S21 (frontend) by comments on their issues. S43 was added on 2026-10-07 from AW44; it follows S12, and
 its per-vendor setting `acceptTaxOnResaleGoods` waits for S24 (phase 5), the per-bill override standing alone until then. S14 still needs an amendment
-to show the hold and the override.
+to show the hold and the override. AW45–AW47 were ruled in the S12 review (louisburroughs/durion-positivity-backend#2609) and bind S12 (#2509).
 
 Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551, ruled 2026-10-07 (AW37–AW43) · C2 Canada louisburroughs/durion#553 · extraction
 provider louisburroughs/durion#549.
@@ -1228,7 +1268,8 @@ To change when the stories land: `pos-accounting/README.md` (endpoints, settings
 `FLOAT_REGISTER_SESSION_OPEN`, `REGISTER_FLOAT_LOCATION_MISMATCH` (pos-order),
 `FLOAT_AMOUNT_NEGATIVE`, `FLOAT_DATE_BEFORE_RELOCATION`, `FLOAT_RELOCATION_NOT_REVERSIBLE`, `FLOAT_REVERSAL_BEFORE_RELOCATION`,
 `BANK_OPENING_BALANCE_ALREADY_ESTABLISHED`, `BANK_OPENING_BALANCE_NOT_FIRST`, `BANK_OPENING_BALANCE_ACCOUNT_NOT_ELIGIBLE`, `BANK_OPENING_BALANCE_EMPTY`;
-from AW37–AW44: `AP_BILL_UNCLASSIFIED`, `AP_BILL_NOT_VOIDABLE`, `AP_PAYMENT_METHOD_NOT_SUPPORTED`, `AP_BILL_TAX_ON_RESALE_GOODS`,
+from AW37–AW44: `AP_BILL_UNCLASSIFIED`, `AP_BILL_NOT_VOIDABLE`, `AP_PAYMENT_METHOD_NOT_SUPPORTED`, `AP_BILL_TAX_ON_RESALE_GOODS`;
+from AW45–AW47 and S12: 409 `AP_BILL_AWAITING_INVOICE`, 422 `AP_BILL_TOTALS_UNRECONCILED`, 422 `AP_BILL_ZERO_TOTAL`, 409 `AP_BILL_ENTRY_NOT_REVERSIBLE`;
 and the mapping refusal's code once louisburroughs/durion-positivity-backend#2601 is decided); `.business-rules/POSTING_RULES_SCHEMA.md` (vendor bills and AP payments use posting categories,
 not rule versions, AW40); `VendorBillServiceImpl` Javadoc and
 comments (PO weight is 5, HIGH is ≥ 70);
