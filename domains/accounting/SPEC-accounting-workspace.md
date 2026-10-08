@@ -628,6 +628,9 @@ number, so an incoming invoice is also checked against it by delivery reference.
   (`supplier:vendor_remit:approve`), which raises `remitToVersion` (payment-fraud control).
 - **The fact.** `supplier.vendor.updated` (v1, on `supplier.events.v1`, keyed by `vendorId`) carries every vendor field. Deactivation is `status = INACTIVE`.
   pos-supplier publishes per-tenant manifests on `supplier.manifest.v1` and re-sends on request (ADR-0044 §4).
+  *Pending acceptance of [ADR-0072](../../docs/adr/0072-data-classification-event-payload-minimisation.adr.md) (Decision 8, amending ADR-0070 Decision 7):
+  the fact carries `taxRegistrations` as `{scheme, region, last4}` at `schemaVersion` 2 and never a full number, so accounting's copy below holds
+  `tax_registrations` in that shape, not tax registration numbers.*
 - **Accounting's copy.** pos-accounting keeps `ext_supplier_vendor`, written only by that fact (ADR-0044 R3). It holds **every** vendor with its status, not
   only active ones, because open bills, history and aged payables still name vendors that have since been deactivated. Fields: `vendorId`, display name,
   vendor number, status, `statusChangedAt`, remit-to, payment terms, tax registration numbers, currency, `remitToVersion` with when and by whom it changed.
