@@ -564,8 +564,8 @@ reader is unsure of is marked "Check this" and blocks confirmation until a perso
 `AnalyzeExpense`**, called only by the extraction worker:
 
 - **Where documents go (AW60, AW61).** Only to Textract in the platform's own AWS account and region (us-east-1 today), never to a third-party vendor. The
-  worker sends one page per synchronous call and never stages a document in S3 or other provider storage; the AWS AI-services opt-out policy covers Textract
-  (§7.4 control 11).
+  worker sends one page per synchronous call and never stages a document in S3 or other provider storage. The AWS AI-services opt-out policy keeps the
+  documents out of AWS's service improvement; Security verifies AWS's retention terms before any provider call is enabled (§7.4 control 11).
 - **Languages (AW62).** The tenant's primary language plus English: English for an English tenant, Spanish and English for es-US, French and English for
   fr-CA (Québec QST lines included). AWS documents `AnalyzeExpense`'s invoice fields for English, so French and Spanish are proven on the labelled sample set
   before they are trusted (OI-24); until a language is calibrated, every field it fills is marked "Check this".
@@ -1007,10 +1007,12 @@ internal `FileStore` port:
 10. **No auto-trust.** Extracted values are suggestions; nothing posts or becomes owed until a person confirms the read-back and the bill is approved (§4.3,
     §4.8).
 11. **Provider data handling (AW60, AW61).** Only the extraction worker calls the provider: AWS Textract in the platform's own AWS account and region. Each
-    page goes in the request of a synchronous call; no document is staged in S3 or any other provider storage. The platform's AWS organization applies the
-    AI-services opt-out policy to Textract, so AWS neither keeps nor trains on the documents; the Security sign-off checks this against AWS's current terms.
-    The worker's IAM role allows only the Textract read actions it uses, and its egress only the regional Textract endpoint. A third-party provider would
-    reopen AW60.
+    page goes in the request of a synchronous call; no document is staged in S3 or any other provider storage. The requirement is no retention and no
+    training. The platform's AWS organization applies the AI-services opt-out policy to Textract, which stops AWS storing or using the documents to improve
+    its services but does not by itself govern content AWS keeps to provide the service. So before any provider call is enabled (the worker runs `none`
+    until then), Security verifies AWS's current Textract retention terms against the requirement and records the evidence; a gap goes back to the
+    platform owner. The worker's IAM role allows only the Textract read actions it uses, and its egress only the regional Textract endpoint. A third-party
+    provider would reopen AW60.
 
 ---
 
@@ -1219,7 +1221,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW58 | Tax registrations travel by outbox: pos-tax owns them and publishes `tax.registration.changed` v1 on `tax.events.v1` with a per-tenant manifest and re-send; pos-accounting and pos-order keep `ext_tax_registration` replicas and read them as of a business date (AW49) | Chief Architect (2026-10-08; louisburroughs/durion#553 question 1) | §4.7, §7.1, §7.3; S31, S32; ADR-0071 §7, ADR-0044 amended |
 | AW59 | People reach pos-tax only through front doors: registrations through pos-accounting (`accounting:tax_registration:view`, `…:manage`), exemption certificates through pos-customer, provider bindings through pos-tenant; each write endpoint accepts only its front door; service computation calls stay direct; pos-tax picks a provider plug-in per tenant and country (`US_SELF`, `CA_SELF`, `AVALARA` …) on platform-held accounts | Chief Architect (2026-10-08; louisburroughs/durion#553 question 2); recommendations accepted by the platform owner (2026-10-08) | §4.7, §7.1, §7.3; S31, S32, S33; ADR-0071, ADR-0021 amended |
 | AW60 | The extraction provider is AWS Textract `AnalyzeExpense`, called only by the extraction worker in the platform's own AWS account and region. Documents never go to a third-party vendor: no specialised invoice API, other cloud or self-hosted reader in v1 | Platform owner (2026-10-08; louisburroughs/durion#549 Q1, Q2) | §4.8, §4.9, §7.4; S26; ADR-0070 Decision 5 |
-| AW61 | No retention and no training: the AWS AI-services opt-out policy covers Textract; each page is sent in a synchronous request, never staged in S3 or other provider storage; the worker's IAM role allows only the Textract read actions it uses and its egress only the regional endpoint | Platform owner (2026-10-08; #549 Q2); mechanism recorded with this decision | §4.8, §7.4 control 11; S26 |
+| AW61 | No retention and no training are required. The AWS AI-services opt-out policy keeps the documents out of service improvement; retention is verified by Security against AWS's current Textract terms before any provider call is enabled (the worker runs `none` until then). Each page is sent in a synchronous request, never staged in S3 or other provider storage; the worker's IAM role allows only the Textract read actions it uses and its egress only the regional endpoint | Platform owner (2026-10-08; #549 Q2); mechanism recorded with this decision | §4.8, §7.4 control 11; S26 |
 | AW62 | v1 reads the tenant's primary language plus English (es-US: Spanish and English; fr-CA: French and English, QST lines included). The labelled sample set covers each language and calibrates "Check this" per language; until then every field a language fills is marked. French and Spanish coverage of `AnalyzeExpense` and the source of a tenant's primary language: OI-24 | Platform owner (2026-10-08; #549 Q3) | §4.8; S25, S26 |
 | AW63 | Reading allowance: 20.00 USD per tenant per calendar month by default, configurable per tenant. pos-accounting meters it (the worker is stateless): pages sent to a provider × the configured price per page, retries included; inspection and spreadsheets are free. A document that would pass the allowance is not sent and opens for manual entry (AW26) with reason `EXTRACTION_ALLOWANCE_USED`. Who may change it: OI-25 | Platform owner (2026-10-08; #549 Q4) | §4.8, §4.9; S26 |
 | AW64 | HEIC stays a v1 format; the worker converts it to JPEG before sending (Textract takes JPEG, PNG, PDF and TIFF); the stored source file stays the original | Proposed 2026-10-08 in answer to the owner's question on #549 Q5; platform owner confirms (OI-25) | §4.8; S26 |

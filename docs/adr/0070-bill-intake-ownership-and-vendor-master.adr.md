@@ -97,7 +97,8 @@ with CPU, memory, time and decompression-ratio limits. The provider is chosen in
 
 *Amended 2026-10-08 (louisburroughs/durion#549; specification AW60–AW66).* The provider is **AWS Textract `AnalyzeExpense`** in the platform's own AWS
 account and region; documents never go to a third-party vendor. The worker sends each page in a synchronous request and stages nothing in provider storage,
-and the AWS AI-services opt-out policy covers Textract (no retention, no training). It reads the tenant's primary language plus English, converts HEIC to
+and the AWS AI-services opt-out policy keeps the documents out of AWS's service improvement. No retention is required too: Security verifies AWS's
+retention terms before any provider call is enabled. It reads the tenant's primary language plus English, converts HEIC to
 JPEG before sending, and groups pages into invoices to propose splits, since Textract reads each page on its own. Its configuration is an ordered list of
 providers, Textract alone in v1, with manual entry as the last resort. pos-accounting meters a monthly reading allowance per tenant (default 20.00 USD) and
 sends nothing past it. HEIC conversion, page grouping and who may change the allowance await the platform owner's confirmation (specification OI-25);
