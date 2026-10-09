@@ -117,6 +117,8 @@ Headers and auth notes:
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
+- An individual customer is created only by `createCrmPerson`, which links a pos-people identity (name and contact points) to a person party. Its response carries `partyId`, the id `getParty`, vehicles, estimates and appointments take, beside `personId`, the id `getPerson` takes.
+- `createCrmCommercialAccount` creates businesses only: an optional `partyType` must be `COMMERCIAL`, and `PERSON` (or any other value) is a `400` naming `createCrmPerson`. A commercial row typed `PERSON` has no person behind it, so it would list as an individual with no name, contact points or `personId`.
 
 ### Frontend Usage Notes
 
@@ -137,6 +139,7 @@ Headers and auth notes:
 
 - Provider tests: `durion-positivity-backend/pos-customer/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+- `PartyServiceImplTest` (`createCommercialAccount_refusesPartyTypePerson_pointingAtCreateCrmPerson`, `createCommercialAccount_refusesAnyPartyTypeButCommercial`) and `PersonServiceImplTest` (`createPerson` asserts `partyId`).
 
 ## CAP-090: [CAP] Contact Management (Roles, Preferences, and Consent)
 
