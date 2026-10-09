@@ -77,6 +77,7 @@ These are normative behavior rules for Accounting and are not replaced by OpenAP
 | CAP-055 | `durion#55` | draft | Reconciliation, audit, and event controls |
 | CAP-251 | `durion#251` | draft | Invoice payment status sync and POS accounting reconciliation |
 | CAP-278 | `durion#278` | draft | Posting rule engine and reprocessing orchestration |
+| CAP-550 | `durion#550` | draft | Accounting Workspace: tax-regime choices for tax registrations |
 
 ## Implementation Links / Backlog
 
@@ -126,6 +127,7 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | Add reconciliation adjustment | `addReconciliationAdjustment` | POST | `http://localhost:8080/v1/accounting/reconciliations/{id}/adjustments` | Story F2; requires `accounting:reconciliation:adjust`; posts a real JE via posting categories, respects period locks |
 | Finalize reconciliation | `finalizeReconciliation` | POST | `http://localhost:8080/v1/accounting/reconciliations/{id}/finalize` | Story F2; requires `accounting:reconciliation:adjust`; balance gate — statement vs GL ending balance within ±0.01 (422 `RECONCILIATION_NOT_BALANCED`) |
 | Reconciliation report / audit | `getReconciliationReport`, `getReconciliationAudit` | GET | `http://localhost:8080/v1/accounting/reconciliations/{id}/{report\|audit}` | Story F2; requires `accounting:reconciliation:view` |
+| List configured tax regimes | `listTaxRegimes` | GET | `http://localhost:8080/v1/accounting/tax-regimes[?countryCode=]` | CAP-550 (backend#2659); requires `accounting:tax_registration:view`; regime choices for a tax registration; 200 `regimes` may be empty; 503 `SERVICE_UNAVAILABLE` + `Retry-After: 30` |
 
 Headers and auth notes:
 
@@ -896,6 +898,86 @@ Do not implement or test against them unless a new story reinstates them.
 - Provider tests: `LaborOverheadReportContractBehaviorIT`
 - Controller tests: `LaborOverheadReportControllerTest`
 - Service tests: `LaborOverheadReportServiceImplTest`
+
+## CAP-550: Accounting Workspace — Tax-Regime Choices
+
+### Capability Metadata
+
+- Capability ID: CAP-550
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/550>
+- Backend Story: <https://github.com/louisburroughs/durion-positivity-backend/issues/2659> (backend PR #2668)
+- Consumer: S33, <https://github.com/louisburroughs/durion-positivity-frontend/issues/470> (regime choices of the tax-registration panel)
+- OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
+
+### API Operation References (OpenAPI Source of Truth)
+
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| List the tax regimes configured for a country | `listTaxRegimes` | GET | `http://localhost:8080/v1/accounting/tax-regimes[?countryCode={CC}]` |
+
+### Behavioral Assertions
+
+- **Permission:** `accounting:tax_registration:view` (bit 562), the same permission as `listTaxRegistrations`;
+  no new permission and no permission-catalog change. Without it: `403`.
+- **Request:** `countryCode` is optional and must match `^[A-Z]{2}$` (ISO 3166-1 alpha-2). When it is
+  omitted, the deployment's tax country (`accounting.tax.country`) applies.
+- **Response (200):** `TaxRegimesResponse {countryCode, source, regimes[]}`; each `TaxRegime {regime,
+  regions[], taxTypes[]}`; each `TaxRegimeTaxType {taxType, jurisdictionType}`. All fields are required.
+  - `countryCode` is the country answered, including when the tax country was defaulted.
+  - `source` names where the lists come from; it is `STUB` while the values are placeholders held for
+    expert advice.
+  - Regimes, and the tax types under each, are in configured order.
+  - An empty `regions` list means the regime covers the whole country.
+  - A tax type with no regime cannot be registered for, so it is omitted.
+  - A country without a tax profile is a defined answer: `200` with `regimes: []` (no registration can be
+    recorded there), not an error.
+- **400 `VALIDATION_ERROR`:** a malformed `countryCode`. pos-tax is not called, and the message never echoes
+  the value.
+- **503 `SERVICE_UNAVAILABLE` + `Retry-After: 30`:** any pos-tax failure: unreachable, timed out, any 4xx or
+  5xx, an empty body, or an unreadable answer (a required list or field missing, a regime without a code or
+  regions, a tax type without a code or jurisdiction level, or a tax type naming an undeclared regime). It is
+  never served as an empty list, because absence is not inferred. No pos-tax 4xx is relayed: the country is
+  validated here first, so no caller-fixable state exists.
+- **Source of the data:** read on every call from pos-tax's `GET /v1/tax/tax-types` through
+  `TaxReferenceClient` (tenant and inbound `X-Correlation-Id` forwarded, 2s connect / 5s read timeouts, no
+  body logged). Not cached: a stale list could offer a regime pos-tax would then refuse.
+- **Read-only:** emits an `ACCOUNTING_TAX_REGIMES_VIEW` audit event; no state change.
+- **Country-agnostic:** the backend names no country, regime or tax type; every value comes from pos-tax
+  configuration.
+
+### Frontend Usage Notes
+
+- Populate the registration panel's regime choices from `regimes[].regime`; never hard-code regimes,
+  regions or tax types. Use `regions` and `taxTypes` as descriptive context for each choice.
+- Treat `regimes: []` as "nothing can be registered for this country", not as a failure.
+- On `503`, use a fixed 30-second backoff: `Retry-After` is not CORS-exposed to the browser.
+- SDK operation `listTaxRegimes` (`@durion-sdk/accounting`) is available once API Artifacts Sync has run for
+  `pos-accounting`.
+
+### ADR Constraints
+
+- ADR-0071 (AW59): people never reach pos-tax directly; tax-registration reads and writes go through
+  pos-accounting's front door.
+- ADR-0017: `countryCode` is caller input, validated here against pos-tax's own shape; one condition maps to
+  one code.
+- ADR-0042: OpenAPI annotations document every response (200/400/403/503 with the `Retry-After` header).
+- ADR-0061 and ADR-0067 do not apply: no location is involved and nothing carries money (the country's
+  currency is deliberately not served).
+
+### Events & Dependencies
+
+- Synchronous dependency on pos-tax's tax-types read (CAP:550 S32a); no pos-tax change or stub was needed.
+- Pairs with `listTaxRegistrations`, `recordTaxRegistration` and `changeTaxRegistration` on the same
+  front door.
+- No domain event is published or consumed.
+
+### Contract Test Traceability
+
+- Controller tests: `TaxRegimesControllerTest` (`taxCountry`, `givenCountry`, `malformedCountry`,
+  `needsTaxRegistrationView`, `posTaxDown`)
+- Service tests: `TaxRegimesServiceImplTest` (`taxCountryGroupedByRegime`, `givenCountry`,
+  `countryWithoutProfile`, `unreadableAnswerIsUnavailable`, `posTaxUnavailable`)
+- Client tests: `TaxReferenceClientTest` (`readsTheTaxTypes`, `taxTypesNotAnAnswerIsUnavailable`)
 
 ## pos-tax Contract Notes (Odoo Parity Wave 1)
 
