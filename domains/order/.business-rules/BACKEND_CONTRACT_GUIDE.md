@@ -9,7 +9,7 @@ guide_path: domains/order/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-order/openapi.yaml
 openapi_commit: 1aa6083
 last_verified_utc: 2026-09-06T00:00:00Z
-last_updated: 2026-10-07
+last_updated: 2026-10-12
 api_reference_generated: domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -276,13 +276,61 @@ Rules:
   `terminalId`, AW31) while its latest-opened session is active (AW36, OI-15; ADR-0044 R1: no synchronous call to pos-order). It
   applies equal versions, and a closed fact always closes the session whatever the order of arrival.
 
+### Reconciliation manifest and replay (ADR-0044 §4)
+
+pos-order reconciles `order.events.v1` the way every other fact owner does
+([durion-positivity-backend#2579](https://github.com/louisburroughs/durion-positivity-backend/issues/2579); consumers
+[#2596](https://github.com/louisburroughs/durion-positivity-backend/issues/2596)).
+
+**`order.manifest.v1`** (`DomainTopics.manifest("order")`), envelope eventType `order.reconciliation.manifest`, payload
+`ReconciliationManifestV1` (envelope schema 1):
+
+| Field | Meaning |
+| --- | --- |
+| `tenantId` | The tenant the window summarises. Manifests are per tenant (ADR-0062 §3): every active tenant gets one per closed window, a zero-count one when it published nothing. A consumer skips (and counts) a manifest without `tenantId`. |
+| `windowStartUtc`, `windowEndUtc` | The closed window `[start, end)`; `pos.order.manifest.window` (`PT1H`), published after `pos.order.manifest.grace` (`PT5M`). |
+| `eventCount` | How many `order.events.v1` facts the tenant published in the window. Membership is the UUIDv7 timestamp embedded in each `eventId`. Every fact type counts (sales order, return, purchase order, register session); the `supplier.commands.v1` requests sharing pos-order's outbox are not facts and do not count. |
+| `eventIdsChecksum` | Lowercase hex SHA-256 over the window's `eventId`s, sorted lexicographically and joined with `\n` (`ReconciliationManifestV1.checksumOf`). |
+| `eventTypeCounts` | Per-eventType counts, for drift diagnostics only; nullable. |
+
+Each window is published once, so a consumer must not drop a replay request it failed to send: it propagates the failure
+for container redelivery.
+
+**`order.outbox.replay-requested`** on `order.commands.v1` (`DomainTopics.commands("order")`), with the tenant header of
+the manifest it answers and the window start as key:
+
+```json
+{"commandType":"order.outbox.replay-requested","payload":{"since":"<windowStartUtc>","until":"<windowEndUtc>"}}
+```
+
+- pos-order's `OrderCommandListener`, the topic's single consumer, re-queues that tenant's published `order.events.v1` rows of
+  `[since, until)` (everything since `since` without an `until`), widened by one second. The outbox re-sends them with their
+  original `eventId`s, so consumers deduplicate them.
+- Lookback: a window starting more than `pos.order.outbox.replay.max-lookback` (`P30D`) ago, without a parsable `since`, or
+  with an `until` that is unparsable or not after `since` is logged and dropped, never widened.
+- Only the tenant the command arrived under is replayed, and only `order.events.v1` rows.
+
+**Consumers.** Each `order.events.v1` consumer records every `eventId` it reads in its `processed_events` log under its own
+owner tag, ignored fact types included, and runs its own manifest check in a consumer group of its own:
+
+| Module | Events consumer (owner tag) | Manifest check (consumer group) |
+| --- | --- | --- |
+| pos-accounting | `OrderEventsListener` (`order`) | `OrderManifestListener` (`pos-accounting-order-manifests`) |
+| pos-inventory | `OrderEventsListener` (`order`) | `OrderManifestListener#onOrderEventsManifest` (`pos-inventory-order-manifests`) |
+| pos-inventory | `PurchaseOrderProjectionListener` (`order:purchase-order-projection`) | `OrderManifestListener#onPurchaseOrderProjectionManifest` (`pos-inventory-purchase-order-projection-manifests`) |
+| pos-workorder | `OrderEventsListener` (`order`) | `OrderManifestListener` (`pos-workorder-order-manifests`) |
+
+On a mismatch a check increments `replica.drift` (tags `owner`, `entity`, `tenant`) and sends the replay request. A replay one
+consumer asks for reaches every consumer, which deduplicates it.
+
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-order/openapi.yaml`
 - OpenAPI source revision: `1aa6083` (price-override endpoints; transmission-events/supplier-availability added #1637/#1638;
   cart and cancel endpoints pending issues #21 and #19)
 - Last verified UTC: `2026-09-06T00:00:00Z`
-- Last capability update: CAP-550 (S40, louisburroughs/durion-positivity-backend#2578; 2026-10-07)
+- Last capability update: CAP-550 (S40, louisburroughs/durion-positivity-backend#2578; 2026-10-07); reconciliation
+  manifest and replay (louisburroughs/durion-positivity-backend#2579, #2596; 2026-10-12)
 - Generated API reference: `domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
