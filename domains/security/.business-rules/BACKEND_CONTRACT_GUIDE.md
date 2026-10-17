@@ -106,6 +106,9 @@ the administrator redeeming the token has no credential to authenticate with yet
 | Activate the first administrator | `activateAccount` | POST | `/v1/auth/activate` | See (b) below |
 | Mint a platform support (impersonation) token | `mintImpersonationToken` | POST | `/v1/platform/tenants/{tenantId}/impersonation-token` | See (c) below |
 | Reconcile a tenant's roles against the platform template | `reconcileRoleTemplate` | POST | `/v1/platform/tenants/{tenantId}/roles/reconcile-template` | See (d) below |
+| Register a tenant with its locale | `createTenant` (pos-tenant) | POST | `/v1/platform/tenants` | CAP-550 S44 (backend#2618): `locale` is required, a BCP 47 tag with a region from `pos.tenant.supported-locales` (default `en-US`, `es-US`, `es-MX`, `fr-CA`, `fr-FR`; case normalised, `fr-ca` is stored as `fr-CA`); a bare language or an unlisted tag is 400 `VALIDATION_ERROR` with `fieldErrors[locale]`. `platform:tenant:create`; platform operators only. The value is returned on every tenant read and published on every `tenant.events.v1` fact (`TenantCreatedV1` / `TenantProjectionV1.locale`, additive, schema version 1) |
+| Change a tenant's locale | `updateTenant` (pos-tenant) | PATCH | `/v1/platform/tenants/{id}` | CAP-550 S44 (backend#2618): optional `locale` (same rules; omitted or null leaves it unchanged); `platform:tenant:update`. A change affects only what is read afterwards; locale and currency are independent (ADR-0067 F-1) |
+| Read the caller's tenant, locale included | `getMyTenant` | GET | `/v1/tenants/me` | CAP-550 S44 (backend#2618): the response gains `locale` (null while pos-security-service's replica has not learned it; ADR-0030 §2 falls back to `en-US`). The frontend learns the shop's language here (the ADR-0067 PC-2 pattern) |
 
 **(a) Mint an activation token.** Requires `platform:tenant:provision` and a platform-tenant binding (403
 `PLATFORM_TENANT_REQUIRED`). Refuses a user who is not `awaiting_activation` with 409
