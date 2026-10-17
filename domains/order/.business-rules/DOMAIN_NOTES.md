@@ -1202,6 +1202,31 @@ decisions referenced in the normative AGENT_GUIDE.md.
   - **Owner:** Security domain
   - **Review cadence:** Quarterly review of who has access to support identifiers
 
+### DECISION-ORDER-016 — Purchase-Order Line Lifecycle: Receipts, Returns, Replacements, Short-Close
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-016); Order ruling on louisburroughs/durion-positivity-backend#2598 (accepted by Inventory O1–O5 and Accounting, AW38/AW39 as amended); implemented by backend#2635 (CAP:550).
+- **Decision:** A purchase-order line carries, written only by pos-order, what was received (and its accrual), returned and cancelled (and their values). `open = max(0, ordered − received − returned − cancelled)` is the stored and published figure; the ex-tax balance derives from the lines; the status derives from the lines only from `APPROVED`, `PARTIALLY_RECEIVED` and `FULLY_RECEIVED`. Four rules:
+  1. A receipt correction (`vendorreturn.recorded`, `RECEIPT_CORRECTION`) reopens the line from the **net received** quantity: the goods are still owed.
+  2. A return to vendor (`RETURN_TO_VENDOR`) defaults to **credit**: the line does not reopen and nothing is published. A replacement is a per-return choice made in pos-order by reopening the **original** line (`reopenPurchaseOrderLine`, `order:purchase_order:reopen`), never by a new purchase order (ADR-0052). The fact carries no disposition field (ADR-0049: only pos-order decides what the vendor still owes).
+  3. `CANCELLED` and `CLOSED` orders keep their status when a receipt or return arrives; the figures move, no supply reopens.
+  4. A short-close (`cancelPurchaseOrderLine`, `closePurchaseOrder`) cancels a remainder the vendor will not ship. An order whose lines are all settled with a short-closed remainder is `CLOSED`; one whose ordered quantity all arrived is `FULLY_RECEIVED`. A close on an order nothing was received on is refused with `nextAction` naming cancel.
+- **Alternatives considered:**
+  - **Option A (Chosen):** two buckets, `returned` (credit) and `cancelled` (short-close), both written only by pos-order.
+    - Pros: a credited return cannot change the status (rule 2) while a short-close can reach `CLOSED` (rule 4); GRNI (2100) reconciles per line.
+    - Cons: one more figure per line; a reopen is a separate command the UI must offer on the return screen.
+  - **Option B:** one "cancelled" bucket for both (the ruling's first wording).
+    - Pros: simpler schema.
+    - Cons: a return would read as a short-close and could close an order the vendor is replacing goods on.
+  - **Option C:** a disposition on the inventory fact deciding reopen vs credit.
+    - Cons: pos-inventory would be writing the order's expectations (ADR-0049 boundary), and a later change of mind would need a second fact.
+- **Reasoning and evidence:** the figures on the line are the single source supply (pos-inventory's replica), receiving and accounting read; deriving open/balance/status from them removes the floored subtractions that could drift (#2632, #2633, #2634).
+- **Architectural implications:** `purchase_order_line` gains six figures (V14); `purchaseorder.updated` is unchanged in v1 (additive `receivedQuantity` / `cancelledQuantity` only if a consumer asks, ADR-0044 §3); three commands and one new permission; the inventory → order edge stays event-only (ADR-0044 §2 R1).
+- **Auditor-facing explanation:** every change to what the vendor owes is a pos-order write with an event id, a permission and a published state; a return's credit leaves the published figures untouched by design.
+- **Migration & backward-compatibility notes:** existing lines backfill `received = ordered − open`; no fact change.
+- **Governance & owner recommendations:**
+  - **Owner:** Order domain (with Inventory for the fact, Accounting for GRNI).
+  - **Review cadence:** when pos-inventory ships the `vendorreturn.recorded` publisher, and if a consumer asks for the additive fact fields.
+
 ## End
 
 End of document.
