@@ -347,6 +347,21 @@ Headers and auth notes:
   none; nothing is written. A settled-payment or register over/short fact held for currency is a
   `SUSPENDED` accounting event with that reason, excluded from auto-retry and released through
   the audited reprocess endpoint (suspended again while still foreign).
+- **Cash rounding (ADR-0067 A8, CAP:550 backend#2662 PR 3, item 12 / AC 20).** A cash
+  `payment.payment.settled` fact carries the additive triple `settledAmount` (the cash taken after
+  rounding to the register's cash increment), `cashRoundingAmount` (signed, `settledAmount − amount`)
+  and `cashIncrement`; `amount` stays the amount applied to the invoice and to AR. pos-accounting
+  checks the triple before it records anything: the difference must equal `settledAmount − amount`,
+  `settledAmount` must be `amount` rounded HALF_UP to a multiple of the increment (exact agreement and
+  zero rounding without one), and a non-cash tender may carry no rounding fields. A fact that fails is
+  held `SUSPENDED / CASH_ROUNDING_INVALID` with no `ReceivablePayment` and no posting; it is excluded
+  from auto-retry, and a reprocess or retry answers 409 `ACCOUNTING_EVENT_HOLD_NOT_RELEASABLE` (the
+  payload never changes; correct the payment at its source and republish). A fact that passes is
+  recorded for `amount`, and its automatic application posts the cash-receipt entry with the rounding:
+  `Dr 1090 Undeposited Funds (amount + cashRoundingAmount) / Cr 1200 AR amount / Cr 6050 Cash Rounding`
+  when the customer paid more than due, `Dr 6050` when the shop absorbed it (`CASH_ROUNDING /
+  CASH_ROUNDING_DIFFERENCE`, seeded with the CAD data); AC 20: 10.00 / 9.98 / 0.02. A fact without the
+  triple (card, or published before A8) posts the two lines as before. Cash refunds are out of A8.
 - **Credit memo responses carry display values, not just ids (issue #1779).** List and detail
   both answer `creditMemoReference` (`CM-{YYYYMM}-{n}`, assigned from the per-month
   `accounting_sequence` counter and backfilled for pre-existing memos), `originalInvoiceReference`
