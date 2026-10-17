@@ -290,6 +290,15 @@ Rules:
   `terminalId`, AW31) while its latest-opened session is active (AW36, OI-15; ADR-0044 R1: no synchronous call to pos-order). It
   applies equal versions, and a closed fact always closes the session whatever the order of arrival.
 
+### Purchase-order facts (CAP:550 S19)
+
+| eventType | Payload record | Payload | Queued |
+| --- | --- | --- | --- |
+| `purchaseorder.updated` | `PurchaseOrderUpdatedV1` schema 2 | PO figures and lines; schema 2 (additive, [durion-positivity-backend#2515](https://github.com/louisburroughs/durion-positivity-backend/issues/2515), PR #2749) adds the trailing nullable `paymentTermsId` (the order's terms as pos-order holds them, e.g. `NET30`, `DUE_ON_RECEIPT`; null when the order carries none and on every schema-1 fact) | On each purchase-order change |
+
+- A consumer must tolerate a `paymentTermsId` that does not parse. pos-accounting keeps it in `ext_order_purchase_order` to
+  estimate the due date of a vendor bill that has none.
+
 ### Reconciliation manifest and replay (ADR-0044 §4)
 
 pos-order reconciles `order.events.v1` the way every other fact owner does
