@@ -854,8 +854,8 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 
 | Capability | Contract (method · path · permission) | Notes |
 | --- | --- | --- |
-| Cash position read | `GET /v1/accounting/cash-position` · `reporting:view:financial-statements` (+ `accounting:reconciliation:view` for statement fields) | §4.1; returns total, components, per-bank rows, `asOf`, needs-attention items, unpaid walk-in sales |
-| Cash outlook | `GET /v1/accounting/cash-outlook?days=30` · `reporting:view:financial-statements` | §4.2; daily points, low point, in/out/possible, estimated-due-date bills |
+| Cash position read | `GET /v1/accounting/cash-position` · `reporting:view:financial-statements` (+ `accounting:reconciliation:view` for statement fields) | §4.1; returns total, components, per-bank rows, `asOf`, `eventFedAsOf`, `lagging`, needs-attention items (`SETTLEMENT_SUSPENSE_NOT_ZERO`, `UNDEPOSITED_CASH_AGED` incl. reason `UNBALANCED`, `CLEARING_RESIDUAL_NOT_ZERO`, `VENDOR_COD_UNAPPLIED_AGED`, `BELOW_SAFETY_CUSHION`), unpaid walk-in sales; event `ACCOUNTING_CASH_POSITION_GET` |
+| Cash outlook | `GET /v1/accounting/cash-outlook?days=30` · `reporting:view:financial-statements` | §4.2; daily points, low point, in/out/possible, estimated-due-date bills; event `ACCOUNTING_CASH_OUTLOOK_GET` |
 | Work items (to-do) | `GET /v1/accounting/work-items?area=&cursor=` · per item type | Read model over bill exceptions and approvals, unapplied payments, unmatched bank lines, undeposited sessions, reconciliations awaiting approval, unpaid walk-in sales; filtered server-side by the caller's permissions; each item carries type, business references, plain reason code, amount, status and the actions the caller may take |
 | Done automatically | `GET /v1/accounting/work-items/automatic?since=` · as above | Auto-applied payments, auto-matched bank lines, auto-approved bills, with undo where the underlying command supports reversal |
 | Unapplied payments | `GET /v1/accounting/receivable-payments?status=AVAILABLE` · `accounting:payment:apply` | Closes G4; with match suggestions (customer, exact total, remittance references) |
