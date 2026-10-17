@@ -301,6 +301,13 @@ Story #33 — Cross-dock to Workorder:
 | Configure where an item class is stored | `createPutawayRule` | POST | `/v1/inventory/putaway/rules` |
 | Retarget, reprioritize, enable or disable a rule | `updatePutawayRule` | PUT | `/v1/inventory/putaway/rules/{ruleId}` |
 | Retire a putaway rule permanently | `deletePutawayRule` | DELETE | `/v1/inventory/putaway/rules/{ruleId}` |
+| List purchase suggestions, optionally only those whose order needs attention (CAP:550 S36, backend#2525) | `listPurchaseSuggestions` | GET | `/v1/inventory/purchase-suggestions?status&sku&locationId&orderAttention` |
+| Request a purchase order from pos-order for ACCEPTED suggestions (CAP:550 S36) | `convertPurchaseSuggestions` | POST | `/v1/inventory/purchase-suggestions/convert` |
+| List feed-vendor mappings (CAP:550 S36) | `listVendorFeedMappings` | GET | `/v1/inventory/vendor-feed-mappings?feedType&vendorId&page&size` |
+| List feed vendors with no usable mapping (CAP:550 S36) | `listUnmappedFeedVendors` | GET | `/v1/inventory/vendor-feed-mappings/unmapped?feedType` |
+| Map a feed vendor to a pos-supplier vendor (CAP:550 S36; `inventory:vendor_feed_mapping:manage`, ADMIN) | `createVendorFeedMapping` | POST | `/v1/inventory/vendor-feed-mappings` |
+| Re-point or annotate a mapping (CAP:550 S36) | `updateVendorFeedMapping` | PUT | `/v1/inventory/vendor-feed-mappings/{mappingId}` |
+| Delete a mapping (CAP:550 S36) | `deleteVendorFeedMapping` | DELETE | `/v1/inventory/vendor-feed-mappings/{mappingId}` |
 
 ### Behavioral Assertions
 
@@ -388,6 +395,26 @@ General:
   `hazardContainment`, `allowNewProduct` added additively within schema v1).
 - Emits `INVENTORY_PUTAWAY_RULE_CREATE`, `INVENTORY_PUTAWAY_RULE_UPDATE`,
   `INVENTORY_PUTAWAY_RULE_DELETE`.
+- **Vendors on purchase suggestions (CAP:550 S36, backend#2525; §1.3 G15, §4.9 "Vendors (AW23)", ADR-0044 R1/R3/R6).**
+  pos-inventory keeps `ext_supplier_vendor` from `supplier.vendor.updated` (`SupplierVendorUpdatedV1`, schema ≥ 2,
+  owner `supplier`, lower `aggregateVersion` skipped, equal re-applied) and reconciles it on `supplier.manifest.v1`
+  (drift → `supplier.outbox.replay-requested` on `supplier.commands.v1`, per tenant). `vendor_feed_mapping` maps a
+  feed vendor (`MANUFACTURER` UUID text or `DISTRIBUTOR` free-text id) to one pos-supplier `vendorId`; only ADMIN
+  maintains it (`inventory:vendor_feed_mapping:manage`), a mapping must name a vendor in the copy and `ACTIVE`
+  (422 `VENDOR_NOT_FOUND` / `VENDOR_INACTIVE`; 409 `VENDOR_FEED_MAPPING_EXISTS`), and pos-supplier never learns
+  feed ids. Only a feed vendor mapped to an ACTIVE vendor is a purchase candidate; the others are skipped and
+  named in `selectionReason`, and `/unmapped` lists them with a product count. Suggestions carry `feedVendorRef`
+  (replaces `vendorRefId`), `vendorId`, `vendorNumber`, `vendorDisplayName`, `vendorStatus`. Conversion resolves
+  every suggestion again before anything is written (422 `PURCHASE_SUGGESTION_MISSING_VENDOR`,
+  `PURCHASE_SUGGESTION_VENDOR_UNMAPPED`, `VENDOR_NOT_FOUND`, `VENDOR_INACTIVE`, `PURCHASE_SUGGESTION_VENDOR_MISMATCH`
+  on vendor ids), sends `PurchaseOrderRequestedV1.vendorId` = the resolved pos-supplier vendor id on
+  `order.commands.v1` (payload unchanged), stamps `vendor_id` and `converted_at`, and answers 422
+  `PURCHASE_ORDER_REQUEST_UNAVAILABLE` with nothing marked when no outbox writer is wired. A CONVERTED suggestion
+  reads `orderStatus` from `ext_purchase_order` and a computed `orderAttention`: `ORDER_VENDOR_INACTIVE`,
+  `ORDER_VENDOR_NOT_IN_COPY` (order DRAFT / APPROVED / PARTIALLY_RECEIVED), `ORDER_NOT_PLACED` (no order row
+  `pos.inventory.purchase-suggestion.order-placement-grace`, default `PT1H`, after conversion), else null; netting is
+  unchanged; gauge `inventory.purchase_suggestion.order_attention{reason}` after each scan. Emits
+  `INVENTORY_VENDOR_FEED_MAPPING_LIST`, `_UNMAPPED_LIST`, `_CREATE`, `_UPDATE`, `_DELETE`.
 
 ### Contract Test Traceability
 
