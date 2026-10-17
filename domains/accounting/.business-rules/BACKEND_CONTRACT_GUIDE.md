@@ -357,10 +357,13 @@ Headers and auth notes:
   held `SUSPENDED / CASH_ROUNDING_INVALID` with no `ReceivablePayment` and no posting; it is excluded
   from auto-retry, and a reprocess or retry answers 409 `ACCOUNTING_EVENT_HOLD_NOT_RELEASABLE` (the
   payload never changes; correct the payment at its source and republish). A fact that passes is
-  recorded for `amount`, and its automatic application posts the cash-receipt entry with the rounding:
-  `Dr 1090 Undeposited Funds (amount + cashRoundingAmount) / Cr 1200 AR amount / Cr 6050 Cash Rounding`
-  when the customer paid more than due, `Dr 6050` when the shop absorbed it (`CASH_ROUNDING /
-  CASH_ROUNDING_DIFFERENCE`, seeded with the CAD data); AC 20: 10.00 / 9.98 / 0.02. A fact without the
+  recorded for `amount` with the rounding kept on the receivable payment (`cash_rounding_amount`) until the
+  payment's first cash-receipt entry books it, whichever that is: an application (automatic or manual) or a
+  customer-credit issuance. That entry posts `Dr 1090 Undeposited Funds (amount + cashRoundingAmount) /
+  Cr 1200 AR (or Cr 2300 Customer Credit) amount / Cr 6050 Cash Rounding` when the customer paid more than
+  due, `Dr 6050` when the shop absorbed it (`CASH_ROUNDING / CASH_ROUNDING_DIFFERENCE`, seeded with the CAD
+  data); exactly one entry carries it, and one too small to absorb a negative rounding leaves it for the next;
+  AC 20: 10.00 / 9.98 / 0.02. A fact without the
   triple (card, or published before A8) posts the two lines as before. Cash refunds are out of A8.
 - **Credit memo responses carry display values, not just ids (issue #1779).** List and detail
   both answer `creditMemoReference` (`CM-{YYYYMM}-{n}`, assigned from the per-month
