@@ -113,6 +113,18 @@ Headers and auth notes:
 
 - Respect published API/event contracts for all upstream and downstream dependencies.
 - Preserve traceability when integrating across services or asynchronous workflows.
+- `PaymentSettledV1` (`payment.payment.settled`, schema version 2 unchanged) gains three additive nullable fields
+  after the existing ones (ADR-0067 A8, CAP:550 backend#2662, PR backend#2743): `settledAmount` (the cash that
+  changed hands after rounding to the currency's cash increment), `cashRoundingAmount` (signed,
+  `= settledAmount − amount`; positive when the customer paid more than due) and `cashIncrement` (the increment
+  applied, e.g. `0.05`; null when the currency has none). **`amount` keeps its meaning: the amount applied to the
+  invoice, the due before rounding** (pos-order completes the order on it cent-exact; pos-accounting applies it to
+  AR). All three are present on a CASH fact (`cashIncrement` null without an increment, then `settledAmount =
+  amount` and rounding 0) and null on CARD / ON_ACCOUNT / OTHER facts and on facts published before A8; a consumer
+  reads `settledAmount ?? amount` and a null rounding as 0. pos-invoice is the sole publisher: pos-order rounds at
+  the register and records the tender through `recordCashPayment`; pos-accounting posts Dr cash `settledAmount` /
+  Cr AR `amount` / 6050 the signed rounding and holds `SUSPENDED` / `CASH_ROUNDING_INVALID` on an invalid triple
+  (PR 3). Cash refunds are out of A8: `PaymentReversedV1` carries no rounding fields yet.
 - Invoice lifecycle `DRAFT → FINALIZED → POSTED` (backend#1843): finalization emits
   `invoice.invoice.updated` (status `FINALIZED`) on `invoice.events.v1`; pos-accounting posts the revenue
   journal entry and publishes `accounting.invoice.gl-posted` (`InvoiceGlPostedV1`) on
@@ -157,6 +169,7 @@ Headers and auth notes:
 | --- | --- | --- | --- | --- |
 | Initiate card payment (sale/capture) | `initiatePayment` | POST | `/v1/invoices/{invoiceId}/payments` | Requires `invoice:payment:process`. Body field `paymentFlow` is required: `SALE_CAPTURE`, or `AUTH_ONLY`, which also requires `invoice:payment:flow_select` |
 | Manually capture an authorization hold | `capturePayment` | POST | `/v1/invoices/{invoiceId}/payments/{paymentId}/capture` | Requires `invoice:payment:capture` |
+| Record a register cash tender (ADR-0067 A8) | `recordCashPayment` | POST | `/v1/invoices/{invoiceId}/payments/cash` | CAP:550 (backend#2662, PR backend#2743). Requires `invoice:payment:process` (location-scoped) and `invoice:payment:limit_override` above 500.00. No gateway: the intent is `CASH`, `CAPTURED`, `paymentToken` null. Body: `idempotencyKey`, `amount` (applied to the invoice), `settledAmount` (cash taken after rounding), `cashRoundingAmount` (= `settledAmount − amount`, signed), optional `cashIncrement`, `currencyCode` (must be the functional currency pos-invoice records in), optional `sessionId`/`terminalId`/`cashierId`. pos-invoice checks the triple (settled = amount rounded HALF_UP to a multiple of the increment; exact agreement without one), never rounds itself (pos-order owns the increment). 422 `CASH_ROUNDING_INVALID`, 422 `INVOICE_PARTY_REQUIRED`, 409 `PAYMENT_IDEMPOTENCY_CONFLICT` (another payload, or a concurrent first request). Payment responses carry `methodType`, `settledAmount`, `cashRoundingAmount`, `cashIncrement` for the receipt. A CASH intent is not voidable or refundable through the gateway paths (409 `INVALID_PAYMENT_STATE`) until the cash-refund follow-up |
 | Inquire on unknown payment outcome | *(planned — not yet in pos-invoice OpenAPI)* | GET | `/v1/invoices/{invoiceId}/payments/{paymentId}/status` | Use before retry to avoid duplicate charges |
 | Generate receipt after capture | `generateReceipt` | POST | `/v1/invoices/{invoiceId}/receipts` | Requires `invoice:receipt:generate`. Stores the receipt; it does not send an email |
 | Get stored receipt | `getReceipt` | GET | `/v1/invoices/{invoiceId}/receipts/{receiptId}` | Requires `invoice:invoice:view`. Returns the stored receipt with its `templateVersion` |
@@ -256,6 +269,8 @@ not reach that location is refused `403 LOCATION_SCOPE_DENIED`. The conditional 
 | Invoice or payment not found | 404 |
 | Duplicate idempotent request | 200 (returns original outcome) |
 | Payment method declined | 422 |
+| Cash tender recorded (no gateway) | 201 |
+| Cash rounding triple or currency does not hold together (`CASH_ROUNDING_INVALID`) | 422 |
 | Gateway unavailable / unknown outcome | 503 |
 
 ### Provider Test Hints
