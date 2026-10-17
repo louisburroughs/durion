@@ -39,6 +39,7 @@ rationale.
 | DECISION-ORDER-013 | Canonical order cancellation status enum contract        |
 | DECISION-ORDER-014 | Frontend permission exposure pattern (safe default)      |
 | DECISION-ORDER-015 | Correlation IDs and admin-only details visibility        |
+| DECISION-ORDER-016 | Purchase-order line lifecycle: receipts, returns, replacements, short-close |
 
 ## Domain Boundaries
 
@@ -94,6 +95,7 @@ rationale.
 | DECISION-ORDER-013 | Canonical cancellation status enum              | [DOMAIN_NOTES.md](#decision-order-013---canonical-order-cancellation-status-enum-contract)        |
 | DECISION-ORDER-014 | Permission exposure pattern to UI               | [DOMAIN_NOTES.md](#decision-order-014---frontend-permission-exposure-pattern-safe-default)        |
 | DECISION-ORDER-015 | Correlation IDs/admin details policy            | [DOMAIN_NOTES.md](#decision-order-015---correlation-ids-and-admin-only-details-visibility)        |
+| DECISION-ORDER-016 | PO line figures: correction reopens, return credits, replacement reopens the original line, short-close → CLOSED | [DOMAIN_NOTES.md](#decision-order-016---purchase-order-line-lifecycle-receipts-returns-replacements-short-close) |
 
 ## Open Questions (from source)
 
