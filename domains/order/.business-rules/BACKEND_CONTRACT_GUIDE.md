@@ -79,6 +79,8 @@ Frontend developer workflow:
 | Cancel order | TODO — pending [#19](https://github.com/louisburroughs/durion-positivity-backend/issues/19) | POST | `/v1/orders/{orderId}/cancel` | operationId assigned at implementation; check OpenAPI after issue #19 merges |
 | Purchase order transmission timeline | `listPurchaseOrderTransmissionEvents` | GET | `/v1/orders/purchase-orders/{poId}/transmission-events` | `order:purchase_order:view`; see ordering note below — replaces both the retired shipment-timeline and transmission-history assumptions (#1638) |
 | Live vendor availability for a purchase order | `getPurchaseOrderSupplierAvailability` | GET | `/v1/orders/purchase-orders/{poId}/supplier-availability?vendorProfileId&deliveryLocationId` | `order:purchase_order:availability_view`; asks one named vendor, degrades to `SUPPLIER_UNAVAILABLE` rather than failing |
+| Vendors a purchase order may name (PO form picker, requested-order prompt) | `listPurchaseOrderVendors` | GET | `/v1/orders/purchase-order-vendors?status&q&page&size&sort` | CAP-550 (backend#2680); `order:purchase_order:view`; pos-order's own copy of the vendor master (ADR-0044 R3): item is exactly `vendorId`, `vendorNumber`, `displayName`, `status`; `status` ACTIVE/INACTIVE, `q` case-insensitive on number or name; sort on `vendorNumber`, `displayName` or `status` only (else 400 `PURCHASE_ORDER_BAD_REQUEST`), default `displayName,asc`; 200 with an empty page when nothing matches; a vendor listed ACTIVE never answers 503 on create |
+| One vendor by id (po-detail names the vendor) | `getPurchaseOrderVendor` | GET | `/v1/orders/purchase-order-vendors/{vendorId}` | CAP-550 (backend#2680); `order:purchase_order:view`; same item; INACTIVE is 200 (a fact, not a refusal); an id not in the copy is **503 `VENDOR_REPLICATION_PENDING`** + `Retry-After`, never 404 (ADR-0017 §1); malformed id 400 |
 
 `listPurchaseOrderTransmissionEvents` ordering note: entries are ordered by the vendor's own clock (`observedAt`
 ascending), tie-broken by platform receipt time (`recordedAt`) and then by event id; any client-supplied `sort`
@@ -329,7 +331,7 @@ consumer asks for reaches every consumer, which deduplicates it.
 - OpenAPI source revision: `1aa6083` (price-override endpoints; transmission-events/supplier-availability added #1637/#1638;
   cart and cancel endpoints pending issues #21 and #19)
 - Last verified UTC: `2026-09-06T00:00:00Z`
-- Last capability update: CAP-550 (S40, louisburroughs/durion-positivity-backend#2578; 2026-10-07); reconciliation
+- Last capability update: CAP-550 (purchase-order vendor reads, louisburroughs/durion-positivity-backend#2680; 2026-10-16); reconciliation
   manifest and replay (louisburroughs/durion-positivity-backend#2579, #2596; 2026-10-12)
 - Generated API reference: `domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
