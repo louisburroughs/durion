@@ -120,9 +120,11 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | Reopen accounting period | `reopenAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/reopen` | Requires `accounting:period:reopen`; mandatory justification |
 | View hard-lock date | `getAccountingHardLockDate` | GET | `http://localhost:8080/v1/accounting/periods/hard-lock` | Requires `accounting:period:view`; `hardLockDate: null` when unset |
 | Set hard-lock date | `setAccountingHardLockDate` | PUT | `http://localhost:8080/v1/accounting/periods/hard-lock` | Requires `accounting:period:hard_lock`; mandatory justification; forward-only (422 `HARD_LOCK_DATE_REGRESSION`) |
+| View / set cash safety cushion | `getCashSafetyCushion`, `setCashSafetyCushion` | GET/PUT | `http://localhost:8080/v1/accounting/configuration/cash-safety-cushion` | CAP-550 S19 (backend#2515, PR #2749); requires `accounting:period:hard_lock`; GET returns `{amount, currencyCode}` (`amount` null while unset); PUT body `{amount \| null, currencyCode, justification (10-1000), requestId}`, `null` clears; 422 `CURRENCY_NOT_SUPPORTED` (not the functional currency), 400 `VALIDATION_ERROR` (unknown code, missing `amount` key, negative or over-precise amount), 400 `JUSTIFICATION_REQUIRED`, 409 on a replayed `requestId` with a different body (same body replays); events `ACCOUNTING_CONFIGURATION_CASH_SAFETY_CUSHION_VIEW` / `ACCOUNTING_CONFIGURATION_CASH_SAFETY_CUSHION_SET` |
+| View / set aged thresholds | `getAgedThresholds`, `setAgedThresholds` | GET/PUT | `http://localhost:8080/v1/accounting/configuration/aged-thresholds` | CAP-550 S19 (backend#2515, PR #2749); requires `accounting:period:hard_lock`; PUT body `{undepositedCashAgedDays, vendorCodUnappliedAgedDays, deliveriesNotBilledDays, justification (10-1000), requestId}`; out of range or missing value 400 `VALIDATION_ERROR`, 400 `JUSTIFICATION_REQUIRED`, 409 on a replayed `requestId` with a different body; events `ACCOUNTING_CONFIGURATION_AGED_THRESHOLDS_VIEW` / `ACCOUNTING_CONFIGURATION_AGED_THRESHOLDS_SET` |
 | General ledger report | `generateGeneralLedger` | GET | `http://localhost:8080/v1/accounting/reports/financial/general-ledger` | Story G2; account-level ledger with running balances |
 | Aged receivables report | `generateAgedReceivables` | GET | `http://localhost:8080/v1/accounting/reports/financial/aged-receivables` | Story G2; per-customer aged AR buckets |
-| Aged payables report | `generateAgedPayables` | GET | `http://localhost:8080/v1/accounting/reports/financial/aged-payables` | Story G2; per-vendor aged AP buckets |
+| Aged payables report | `generateAgedPayables` | GET | `http://localhost:8080/v1/accounting/reports/financial/aged-payables` | Story G2; per-vendor aged AP buckets; CAP-550 S19 (backend#2515): a bill with no due date ages from its estimated due date (rule in CAP-054 notes); each row and the report totals add `estimatedDueDateAmount` (open amount aged on an estimate, part of `totalOutstanding`), `unappliedPayments` (minus unapplied AP payments, VOIDED and RETURNED excluded, functional currency only) and `netOwed` (= `totalOutstanding` + `unappliedPayments`: approved open bills less unapplied payments); the CSV export gains the three columns |
 | List settlement lines | `listSettlementLines` | GET | `http://localhost:8080/v1/accounting/settlements/{settlementId}/lines` | Story F1c; requires `accounting:reconciliation:view`; `unmatchedOnly` filter |
 | Match settlement line | `matchSettlementLine` | POST | `http://localhost:8080/v1/accounting/settlements/lines/{lineId}/match` | Story F1c; requires `accounting:reconciliation:adjust`; matches an UNMATCHED line to a receivable payment |
 | Write off settlement line | `writeOffSettlementLine` | POST | `http://localhost:8080/v1/accounting/settlements/lines/{lineId}/write-off` | Story F1c; requires `accounting:reconciliation:adjust`; ≤ threshold (default $25.00), mandatory reason, reversible JE (422 above threshold) |
@@ -575,6 +577,20 @@ Headers and auth notes:
   monotonic-forward-only (backward move → `422 HARD_LOCK_DATE_REGRESSION`); setting it requires a
   mandatory justification and is audit-logged. `GET /periods/hard-lock` returns `hardLockDate: null`
   when unset. Events: `ACCOUNTING_PERIOD_HARD_LOCK_VIEW` / `ACCOUNTING_PERIOD_HARD_LOCK_SET`.
+- Cash and payables settings (CAP-550 S19, backend#2515, PR #2749; `accounting_configuration` rows read by
+  `CashAndPayablesSettings`; an absent row, or a stored value that does not parse or is out of range, reads as the default):
+  `UNDEPOSITED_CASH_AGED_DAYS` default 3 (1..30), `VENDOR_COD_UNAPPLIED_AGED_DAYS` default 14 (1..90),
+  `DELIVERIES_NOT_BILLED_DAYS` default 30 (7..120), `CASH_SAFETY_CUSHION` default unset (>= 0 at the functional
+  currency's precision; management threshold, never posted or subtracted). Both PUTs are audited old to new with the
+  request id and idempotent on `requestId`.
+- Estimated due date (read side only; never stored, the bill's `dueDate` is never written): a bill with a real due date
+  gets no estimate; otherwise bill date + terms, the terms taken from the matched purchase order's `paymentTermsId`, else the
+  vendor's `defaultPaymentTerms`, else `AP_DEFAULT_TERMS`; a value that does not parse (`NET<n>` n 1..120,
+  `DUE_ON_RECEIPT`) falls through. `termsSource` is `PURCHASE_ORDER` | `VENDOR` | `TENANT_DEFAULT`.
+- Purchase-order copy `ext_order_purchase_order` (V36; tenant-scoped under RLS): `purchase_order_id`, `po_number`,
+  `vendor_id`, `payment_terms_id`, `aggregate_version`, `updated_at`. Fed only by `purchaseorder.updated` (schema 2 adds
+  nullable `paymentTermsId`; a schema-1 fact stores null) on `order.events.v1`, version-guarded, equal versions apply; a
+  bill whose order has not republished falls through to vendor or tenant terms.
 - Closed-period override: `accounting:period:override` plus a non-blank `overrideJustification`
   allows posting/reversing into a CLOSED period; the override is audit-logged
   (`PERIOD_OVERRIDE_POST`). Without it the request fails `422 PERIOD_CLOSED`.
